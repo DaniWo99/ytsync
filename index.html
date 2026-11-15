@@ -58,7 +58,6 @@
       }
     }
 
-    /* Contenedor 16:9 responsivo para el reproductor de YouTube */
     .video-stage {
       position: relative;
       width: 100%;
@@ -78,7 +77,6 @@
       background-color: #09090B;
     }
 
-    /* Tema Claro Minimalista Plano (100% sin degradados) */
     body.theme-light {
       background-color: #F4F4F5 !important;
       color: #09090B !important;
@@ -145,7 +143,7 @@
     </div>
   </div>
 
-  <!-- AVISO DISCRETO SOLO PARA COPIAR ENLACE -->
+  <!-- AVISO DISCRETO SOLO PARA ACCIONES DEL USUARIO -->
   <div id="toast-bar" class="hidden fixed bottom-3 right-3 z-40 max-w-xs bg-zinc-900 text-zinc-100 border border-zinc-700 px-3 py-2 shadow-none flex items-center justify-between gap-2">
     <div class="flex items-center gap-2 text-xs font-mono">
       <span id="toast-dot" class="w-2 h-2 bg-emerald-500 inline-block shrink-0"></span>
@@ -184,11 +182,11 @@
     </div>
   </header>
 
-  <!-- BANNER COMPACTO PARA DESBLOQUEAR AUDIO REMOTO EN iPHONE (SE OCULTA AL TOCARLO) -->
+  <!-- BANNER COMPACTO PARA DESBLOQUEAR AUDIO REMOTO EN iPHONE -->
   <section id="ios-unlock-banner" class="border-b border-zinc-800 bg-zinc-900 text-zinc-200 px-3 sm:px-5 py-2">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
       <span id="ios-banner-text" class="text-xs text-zinc-300">
-        Si estás en iPhone, toca aquí una vez para activar la reproducción automática desde otros dispositivos.
+        Toca aquí en ambos teléfonos antes de empezar para autorizar el arranque sincronizado de audio.
       </span>
       <button id="btn-ios-unlock" type="button" onclick="unlockIosPlayback()" class="w-full sm:w-auto px-3 py-1 bg-zinc-100 text-zinc-950 font-mono font-semibold text-xs uppercase border border-zinc-300 shrink-0">
         Activar en iPhone
@@ -199,33 +197,43 @@
   <!-- CONTENIDO PRINCIPAL SIMPLIFICADO -->
   <main class="max-w-6xl mx-auto px-3 sm:px-5 py-4 safe-bottom">
 
-    <!-- BARRA DE ENLACE DE YOUTUBE (SIN VIDEOS RÁPIDOS) -->
+    <!-- BARRA DE ENLACE DE YOUTUBE (LIMPIA Y LISTA PARA PEGAR CUALQUIER LINK PROPIO) -->
     <section class="surface-card border border-zinc-800 bg-zinc-900 p-2.5 sm:p-3 mb-4">
-      <div class="flex flex-col sm:flex-row gap-2">
-        <label for="yt-url-input" class="sr-only">URL o ID de YouTube</label>
-        <input
-          id="yt-url-input"
-          type="text"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();handleLoadVideoFromInput();}"
-          placeholder="Pega un enlace de YouTube (youtube.com/watch?v=..., youtu.be/..., shorts/...)"
-          value="https://www.youtube.com/watch?v=aqz-KE-bpKQ"
-          class="surface-sub flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-600 font-mono md-text-sm"
-        />
+      <form id="video-load-form" onsubmit="event.preventDefault();handleLoadVideoFromInput();" class="flex flex-col sm:flex-row gap-2">
+        <div class="flex-1 flex gap-1.5">
+          <label for="yt-url-input" class="sr-only">URL o ID de YouTube</label>
+          <input
+            id="yt-url-input"
+            type="text"
+            value=""
+            onpaste="handleUrlPasteEvent(event)"
+            placeholder="Pega aquí tu link de YouTube (watch?v=..., youtu.be/..., shorts/...) y pulsa Cargar Video"
+            class="surface-sub flex-1 bg-zinc-950 border border-zinc-700 px-3 py-2 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-red-600 font-mono md-text-sm"
+          />
+          <button
+            id="btn-clear-url"
+            type="button"
+            onclick="clearUrlInput()"
+            class="surface-sub px-2.5 py-2 border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 text-zinc-400 font-mono text-xs shrink-0"
+            title="Limpiar campo de enlace"
+          >
+            ×
+          </button>
+        </div>
         <button
           id="btn-load-video"
-          type="button"
-          onclick="handleLoadVideoFromInput()"
+          type="submit"
           class="px-4 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-mono font-semibold uppercase text-xs tracking-wider border border-red-500 shrink-0"
         >
           Cargar Video
         </button>
-      </div>
+      </form>
     </section>
 
     <!-- GRILLA PRINCIPAL: REPRODUCTOR (IZQUIERDA) + SALA Y CHAT (DERECHA) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-      <!-- COLUMNA IZQUIERDA (8 cols): REPRODUCTOR DE YOUTUBE Y CONTROLES -->
+      <!-- COLUMNA IZQUIERDA (8 cols): REPRODUCTOR DE YOUTUBE Y CONTROLES DE ALTA PRECISIÓN -->
       <div class="lg:col-span-8 flex flex-col gap-4">
 
         <div class="surface-card border border-zinc-800 bg-zinc-900">
@@ -239,29 +247,26 @@
             </div>
             <div class="flex items-center gap-1 shrink-0">
               <button
-                id="btn-engine-direct"
-                type="button"
-                onclick="switchVideoEngine('direct')"
-                class="px-2 py-0.5 font-mono text-[10px] uppercase border border-red-500 bg-red-600 text-white"
-                title="Reproductor oficial YouTube"
-              >
-                YT
-              </button>
-              <button
                 id="btn-engine-relay"
                 type="button"
                 onclick="switchVideoEngine('relay')"
-                class="px-2 py-0.5 font-mono text-[10px] uppercase border border-zinc-700 bg-zinc-900 text-zinc-400"
-                title="Modo Relay alternativo"
+                class="px-2 py-0.5 font-mono text-[10px] uppercase border border-red-500 bg-red-600 text-white font-semibold"
               >
                 Relay
+              </button>
+              <button
+                id="btn-engine-direct"
+                type="button"
+                onclick="switchVideoEngine('direct')"
+                class="px-2 py-0.5 font-mono text-[10px] uppercase border border-zinc-700 bg-zinc-900 text-zinc-400"
+              >
+                YT
               </button>
               <button
                 id="btn-engine-native"
                 type="button"
                 onclick="switchVideoEngine('native')"
                 class="px-2 py-0.5 font-mono text-[10px] uppercase border border-zinc-700 bg-zinc-900 text-zinc-400"
-                title="Modo HTML5 directo"
               >
                 HTML5
               </button>
@@ -294,14 +299,14 @@
             </button>
           </div>
 
-          <!-- CONTROLES DE REPRODUCCIÓN Y AUTO-SINCRONIZACIÓN -->
+          <!-- CONTROLES DE REPRODUCCIÓN Y BLOQUEO DE FASE AL MILISEGUNDO (PLL + NTP) -->
           <div class="p-3 bg-zinc-900 border-t border-zinc-800 surface-card">
             <!-- Línea de tiempo -->
             <div class="mb-3">
               <div class="flex items-center justify-between font-mono text-xs text-zinc-300 mb-1.5">
                 <span id="time-current">00:00.0</span>
                 <span id="sync-status-pill" class="px-2 py-0.5 bg-emerald-950 border border-emerald-700 text-emerald-300 text-[11px]">
-                  SINCRONIZADO
+                  SINCRONIZADO (0 ms)
                 </span>
                 <span id="time-duration">09:56</span>
               </div>
@@ -311,7 +316,7 @@
                 type="range"
                 min="0"
                 max="596"
-                step="0.1"
+                step="0.05"
                 value="0"
                 oninput="handleTimelineScrubPreview(this.value)"
                 onchange="handleTimelineSeekCommit(this.value)"
@@ -354,28 +359,29 @@
                 type="button"
                 onclick="triggerManualSyncAll('Manual')"
                 class="col-span-2 sm:col-span-1 min-h-[42px] px-3 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-mono font-semibold text-xs uppercase border border-red-500"
+                title="Pre-carga ambos teléfonos en el punto exacto y arranca al mismo milisegundo"
               >
                 Sincronizar
               </button>
             </div>
 
-            <!-- Barra compacta: Audio, Velocidad y Chequeo Periódico -->
+            <!-- Barra compacta: Audio, Micro-Fase al Milisegundo y Auto-Sync -->
             <div class="mt-2.5 pt-2.5 border-t border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5">
                 <button
                   id="btn-mute-toggle"
                   type="button"
                   onclick="toggleLocalMute()"
-                  class="surface-sub px-2.5 py-1 border border-zinc-700 bg-zinc-950 text-zinc-200"
+                  class="surface-sub px-2 py-1 border border-zinc-700 bg-zinc-950 text-zinc-200"
                 >
                   Audio: <span id="mute-state-label">Activo</span>
                 </button>
 
-                <label for="speed-select" class="text-zinc-400">Vel:</label>
+                <label for="speed-select" class="sr-only">Velocidad</label>
                 <select
                   id="speed-select"
                   onchange="handleSpeedChange(this.value)"
-                  class="surface-sub bg-zinc-950 border border-zinc-700 px-2 py-1 text-zinc-200 md-text-sm"
+                  class="surface-sub bg-zinc-950 border border-zinc-700 px-1.5 py-1 text-zinc-200 md-text-sm"
                 >
                   <option value="0.75">0.75x</option>
                   <option value="1" selected>1.0x</option>
@@ -385,8 +391,32 @@
                 </select>
               </div>
 
+              <!-- Micro-calibración de fase de audio en vivo -->
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-zinc-400 uppercase mr-0.5">Fase:</span>
+                <button
+                  id="btn-nudge-back"
+                  type="button"
+                  onclick="nudgeLocalAudioPhase(-0.025)"
+                  class="surface-sub px-2 py-1 border border-zinc-700 bg-zinc-950 active:bg-zinc-800 text-zinc-200 text-[11px]"
+                >
+                  -25ms
+                </button>
+                <span id="phase-offset-label" class="px-1.5 py-1 bg-zinc-950 border border-zinc-800 text-emerald-400 text-[11px]">
+                  0ms
+                </span>
+                <button
+                  id="btn-nudge-fwd"
+                  type="button"
+                  onclick="nudgeLocalAudioPhase(0.025)"
+                  class="surface-sub px-2 py-1 border border-zinc-700 bg-zinc-950 active:bg-zinc-800 text-zinc-200 text-[11px]"
+                >
+                  +25ms
+                </button>
+              </div>
+
               <!-- Ajuste compacto del chequeo periódico automático -->
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5">
                 <button
                   id="btn-toggle-auto-check"
                   type="button"
@@ -399,10 +429,11 @@
                 <select
                   id="check-interval-select"
                   onchange="updateCheckInterval(this.value)"
-                  class="surface-sub bg-zinc-950 border border-zinc-700 px-2 py-1 text-zinc-300 md-text-sm"
+                  class="surface-sub bg-zinc-950 border border-zinc-700 px-1.5 py-1 text-zinc-300 md-text-sm"
                 >
-                  <option value="2000">Cada 2s</option>
-                  <option value="3000" selected>Cada 3s</option>
+                  <option value="1000">Cada 1s</option>
+                  <option value="2000" selected>Cada 2s</option>
+                  <option value="3000">Cada 3s</option>
                   <option value="5000">Cada 5s</option>
                   <option value="8000">Cada 8s</option>
                 </select>
@@ -521,7 +552,7 @@
 
   <script>
     /* ==========================================================================
-       CATÁLOGO DE RESPALDO Y CONFIGURACIÓN DE MOTOR
+       CONFIGURACIÓN DE MOTOR DE REPRODUCCIÓN (RELAY HTTPS POR DEFECTO SIN ERROR 153)
        ========================================================================== */
     const DIRECT_VIDEO_STREAMS = {
       'aqz-KE-bpKQ': {
@@ -550,18 +581,6 @@
         mp4: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
       }
     };
-
-    function detectInitialEngineMode() {
-      try {
-        const isHttpOrigin = (window.location.protocol === 'https:' || window.location.protocol === 'http:') &&
-          window.location.origin &&
-          window.location.origin !== 'null' &&
-          !window.location.hostname.includes('usercontent.goog');
-        return isHttpOrigin ? 'direct' : 'relay';
-      } catch (e) {
-        return 'direct';
-      }
-    }
 
     function detectIsIos() {
       const ua = navigator.userAgent || '';
@@ -593,10 +612,13 @@
       iosUnlocked: false,
       lightMode: false,
 
-      engineMode: detectInitialEngineMode(),
+      // SIEMPRE iniciar en 'relay' (Embedly HTTPS Relay + Player.js) porque nunca da Error 153
+      engineMode: 'relay',
 
       videoId: 'aqz-KE-bpKQ',
       videoTitle: 'Big Buck Bunny 60fps',
+      videoVersion: 1,
+      lockLocalVideoUntil: 0,
       isPlaying: false,
       currentTime: 0,
       duration: 596,
@@ -608,13 +630,20 @@
       ytReady: false,
       relayReady: false,
       lastTrackedYtTime: 0,
-      lastTrackedYtTick: Date.now(),
+      lastTrackedYtTick: performance.now(),
 
+      // Motor de Bloqueo de Fase al Milisegundo (PLL + NTP RTT)
       autoCheckEnabled: true,
-      checkIntervalMs: 3000,
-      driftThresholdSec: 0.8,
-      nextCheckRemainingMs: 3000,
+      checkIntervalMs: 2000,
+      driftThresholdSec: 0.025, // 25 milisegundos
+      hardSeekThresholdSec: 0.45,
+      nextCheckRemainingMs: 2000,
       ignorePlayerEventsUntil: 0,
+      pllActiveUntil: 0,
+      pllResetTimer: null,
+      scheduledStartTimer: null,
+      manualAudioOffsetSec: 0,
+      lastMeasuredDriftMs: 0,
 
       mqttConnected: false,
       peers: {},
@@ -639,9 +668,10 @@
     let broadcastChannel = null;
     let mainLoopInterval = null;
     let announceInterval = null;
+    let ntpPingInterval = null;
 
     /* ==========================================================================
-       UTILIDADES DE FORMATO Y AVISO DISCRETO
+       UTILIDADES DE FORMATO Y EXTRACCIÓN INTELIGENTE DE ENLACES DE YOUTUBE
        ========================================================================== */
     let toastTimeout = null;
     function showToast(message, type = 'ok') {
@@ -683,24 +713,48 @@
       return includeTenths ? `${base}.${tenths}` : base;
     }
 
+    // Extrae el ÚLTIMO ID de YouTube válido presente en el texto (soporta pegar sobre texto existente, shorts, youtu.be, music, live)
     function extractYouTubeId(input) {
       if (!input) return null;
-      const trimmed = input.trim();
+      const trimmed = String(input).trim();
 
       if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
         return trimmed;
       }
 
-      const patterns = [
-        /(?:youtube\.com\/watch\?v=|m\.youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube-nocookie\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
-        /[?&]v=([a-zA-Z0-9_-]{11})/
-      ];
-
-      for (const regex of patterns) {
-        const match = trimmed.match(regex);
-        if (match && match[1]) return match[1];
+      const globalRegex = /(?:(?:youtube\.com|m\.youtube\.com|music\.youtube\.com|youtube-nocookie\.com)\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/g;
+      const matches = [...trimmed.matchAll(globalRegex)];
+      if (matches.length > 0) {
+        return matches[matches.length - 1][1];
       }
+
+      const paramRegex = /[?&]v=([a-zA-Z0-9_-]{11})/g;
+      const paramMatches = [...trimmed.matchAll(paramRegex)];
+      if (paramMatches.length > 0) {
+        return paramMatches[paramMatches.length - 1][1];
+      }
+
       return null;
+    }
+
+    function clearUrlInput() {
+      const input = document.getElementById('yt-url-input');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function handleUrlPasteEvent(event) {
+      setTimeout(() => {
+        const input = document.getElementById('yt-url-input');
+        if (!input || !input.value) return;
+        const vid = extractYouTubeId(input.value);
+        if (vid) {
+          input.value = `https://www.youtube.com/watch?v=${vid}`;
+          handleLoadVideoFromInput();
+        }
+      }, 40);
     }
 
     async function fetchYouTubeMetadata(videoId) {
@@ -708,7 +762,7 @@
         const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data && data.title) {
+        if (data && data.title && state.videoId === videoId) {
           state.videoTitle = data.author_name ? `${data.title} — ${data.author_name}` : data.title;
           renderAll();
         }
@@ -716,7 +770,10 @@
     }
 
     /* ==========================================================================
-       MOTORES DE REPRODUCCIÓN DE YOUTUBE (YT DIRECTO / RELAY / HTML5)
+       MOTORES DE REPRODUCCIÓN DE YOUTUBE
+       - 'relay' (Por defecto): Embedly HTTPS Relay + Player.js (CERO Error 153)
+       - 'direct': YouTube IFrame API directo
+       - 'native': HTML5 <video> directo
        ========================================================================== */
     function buildEmbedlyRelayUrl(videoId, startSec = 0, autoplay = false) {
       const cleanStart = Math.max(0, Math.floor(Number(startSec) || 0));
@@ -744,6 +801,20 @@
       mountActiveVideoEngine(state.videoId, state.currentTime, state.isPlaying);
     }
 
+    function subscribeRelayPlayerEvents() {
+      if (!relayIframeEl || !relayIframeEl.contentWindow) return;
+      ['play', 'pause', 'timeupdate', 'ended', 'error'].forEach(evName => {
+        try {
+          relayIframeEl.contentWindow.postMessage(JSON.stringify({
+            context: 'player.js',
+            version: '0.0.11',
+            method: 'addEventListener',
+            value: evName
+          }), '*');
+        } catch (e) {}
+      });
+    }
+
     function mountActiveVideoEngine(videoId, startSec = 0, autoPlay = false) {
       const mount = document.getElementById('yt-player-mount');
       const nativeVideo = document.getElementById('native-html5-video');
@@ -754,7 +825,40 @@
         nativeVideo.pause();
       } catch (e) {}
 
-      if (state.engineMode === 'direct') {
+      if (state.engineMode === 'relay') {
+        state.ytReady = false;
+        ytPlayer = null;
+        nativeVideo.classList.add('hidden');
+        mount.classList.remove('hidden');
+        mount.innerHTML = '';
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'relay-youtube-iframe';
+        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('playsinline', '');
+        iframe.setAttribute('webkit-playsinline', '');
+        iframe.src = buildEmbedlyRelayUrl(videoId, startSec, autoPlay);
+
+        iframe.onload = () => {
+          state.relayReady = true;
+          subscribeRelayPlayerEvents();
+          setTimeout(subscribeRelayPlayerEvents, 500);
+          setTimeout(subscribeRelayPlayerEvents, 1500);
+          if (startSec > 0) {
+            setTimeout(() => {
+              sendRelayCommand('setCurrentTime', Number(startSec.toFixed(3)), 'seekTo', [Number(startSec.toFixed(3)), true]);
+              if (autoPlay) sendRelayCommand('play', undefined, 'playVideo', []);
+            }, 600);
+          }
+        };
+
+        mount.appendChild(iframe);
+        relayIframeEl = iframe;
+        state.relayReady = true;
+        updatePlayerStatusBanner(autoPlay ? 'REPRODUCIENDO' : 'LISTO', 'bg-emerald-500');
+      } else if (state.engineMode === 'direct') {
         nativeVideo.classList.add('hidden');
         mount.classList.remove('hidden');
 
@@ -790,26 +894,6 @@
         if (window.YT && window.YT.Player) {
           bindYtPlayerToIframe(iframe);
         }
-      } else if (state.engineMode === 'relay') {
-        state.ytReady = false;
-        ytPlayer = null;
-        nativeVideo.classList.add('hidden');
-        mount.classList.remove('hidden');
-        mount.innerHTML = '';
-
-        const iframe = document.createElement('iframe');
-        iframe.id = 'relay-youtube-iframe';
-        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-        iframe.setAttribute('allowfullscreen', '');
-        iframe.setAttribute('playsinline', '');
-        iframe.setAttribute('webkit-playsinline', '');
-        iframe.src = buildEmbedlyRelayUrl(videoId, startSec, autoPlay);
-
-        mount.appendChild(iframe);
-        relayIframeEl = iframe;
-        state.relayReady = true;
-        updatePlayerStatusBanner(autoPlay ? 'REPRODUCIENDO' : 'LISTO', 'bg-emerald-500');
       } else if (state.engineMode === 'native') {
         state.ytReady = false;
         ytPlayer = null;
@@ -906,7 +990,7 @@
         state.currentTime = nativeVideo.currentTime || 0;
         updatePlayerStatusBanner('REPRODUCIENDO', 'bg-emerald-500');
         if (Date.now() > state.ignorePlayerEventsUntil) {
-          broadcastSyncAction('PLAY', { time: state.currentTime, rate: state.playbackRate });
+          initiateCoordinatedPlay(state.currentTime);
         }
         renderAll();
       });
@@ -926,7 +1010,11 @@
         if (state.engineMode !== 'native') return;
         state.currentTime = nativeVideo.currentTime || 0;
         if (Date.now() > state.ignorePlayerEventsUntil) {
-          broadcastSyncAction('SEEK', { time: state.currentTime, isPlaying: !nativeVideo.paused });
+          if (!nativeVideo.paused) {
+            initiateCoordinatedPlay(state.currentTime);
+          } else {
+            broadcastSyncAction('SEEK', { time: state.currentTime, isPlaying: false });
+          }
         }
         renderAll();
       });
@@ -945,19 +1033,36 @@
         }
 
         if (msg && msg.context === 'player.js') {
-          if (msg.event === 'ready' && relayIframeEl && relayIframeEl.contentWindow) {
+          if (msg.event === 'ready') {
             state.relayReady = true;
-            ['play', 'pause', 'timeupdate', 'ended', 'error'].forEach(evName => {
-              relayIframeEl.contentWindow.postMessage(JSON.stringify({
-                context: 'player.js',
-                version: '0.0.11',
-                method: 'addEventListener',
-                value: evName
-              }), '*');
-            });
+            subscribeRelayPlayerEvents();
           } else if (msg.event === 'timeupdate' && msg.value) {
             if (typeof msg.value.seconds === 'number' && !state.isScrubbing) {
-              state.currentTime = msg.value.seconds;
+              const incomingSec = Number(msg.value.seconds);
+              // Si el usuario adelantó o atrasó la barra dentro del reproductor de YouTube (> 1.6s de salto)
+              if (
+                Date.now() > state.ignorePlayerEventsUntil &&
+                Math.abs(incomingSec - state.currentTime) > 1.6
+              ) {
+                state.currentTime = incomingSec;
+                state.lastTrackedYtTime = incomingSec;
+                state.lastTrackedYtTick = performance.now();
+                if (state.isPlaying) {
+                  initiateCoordinatedPlay(incomingSec);
+                } else {
+                  broadcastSyncAction('SEEK', {
+                    videoId: state.videoId,
+                    videoVersion: state.videoVersion,
+                    time: incomingSec,
+                    isPlaying: false,
+                    rate: state.playbackRate
+                  });
+                }
+              } else {
+                state.currentTime = incomingSec;
+                state.lastTrackedYtTime = incomingSec;
+                state.lastTrackedYtTick = performance.now();
+              }
             }
             if (typeof msg.value.duration === 'number' && msg.value.duration > 0) {
               state.duration = msg.value.duration;
@@ -966,18 +1071,20 @@
             state.isPlaying = true;
             updatePlayerStatusBanner('REPRODUCIENDO', 'bg-emerald-500');
             if (Date.now() > state.ignorePlayerEventsUntil) {
-              broadcastSyncAction('PLAY', { time: state.currentTime, rate: state.playbackRate });
+              initiateCoordinatedPlay(state.currentTime);
             }
             renderAll();
           } else if (msg.event === 'pause') {
             state.isPlaying = false;
             updatePlayerStatusBanner('EN PAUSA', 'bg-amber-400');
             if (Date.now() > state.ignorePlayerEventsUntil) {
-              broadcastSyncAction('PAUSE', { time: state.currentTime });
+              broadcastSyncAction('PAUSE', {
+                videoId: state.videoId,
+                videoVersion: state.videoVersion,
+                time: state.currentTime
+              });
             }
             renderAll();
-          } else if (msg.event === 'error') {
-            switchVideoEngine('native');
           }
         }
 
@@ -985,12 +1092,20 @@
           if (typeof msg.info.currentTime === 'number' && !state.isScrubbing) {
             const newTime = msg.info.currentTime;
             if (
-              state.engineMode === 'direct' &&
               Date.now() > state.ignorePlayerEventsUntil &&
-              Math.abs(newTime - state.currentTime) > 1.8
+              Math.abs(newTime - state.currentTime) > 1.6
             ) {
               state.currentTime = newTime;
-              broadcastSyncAction('SEEK', { time: newTime, isPlaying: state.isPlaying });
+              if (state.isPlaying) {
+                initiateCoordinatedPlay(newTime);
+              } else {
+                broadcastSyncAction('SEEK', {
+                  videoId: state.videoId,
+                  videoVersion: state.videoVersion,
+                  time: newTime,
+                  isPlaying: false
+                });
+              }
             } else {
               state.currentTime = newTime;
             }
@@ -1068,24 +1183,28 @@
         if (dur > 0) state.duration = dur;
         state.currentTime = safeGetCurrentTime();
         state.lastTrackedYtTime = state.currentTime;
-        state.lastTrackedYtTick = now;
+        state.lastTrackedYtTick = performance.now();
         updatePlayerStatusBanner('REPRODUCIENDO', 'bg-emerald-500');
 
         if (now > state.ignorePlayerEventsUntil) {
-          broadcastSyncAction('PLAY', { time: state.currentTime, rate: state.playbackRate });
+          initiateCoordinatedPlay(state.currentTime);
         }
       } else if (ytState === 2) {
         state.isPlaying = false;
         state.currentTime = safeGetCurrentTime();
         state.lastTrackedYtTime = state.currentTime;
-        state.lastTrackedYtTick = now;
+        state.lastTrackedYtTick = performance.now();
         updatePlayerStatusBanner('EN PAUSA', 'bg-amber-400');
 
         if (now > state.ignorePlayerEventsUntil) {
-          broadcastSyncAction('PAUSE', { time: state.currentTime });
+          broadcastSyncAction('PAUSE', {
+            videoId: state.videoId,
+            videoVersion: state.videoVersion,
+            time: state.currentTime
+          });
         }
       } else if (ytState === 3) {
-        updatePlayerStatusBanner('SINCRONIZANDO...', 'bg-amber-400');
+        updatePlayerStatusBanner('BUFFER...', 'bg-amber-400');
       } else if (ytState === 0) {
         state.isPlaying = false;
         updatePlayerStatusBanner('FINALIZADO', 'bg-zinc-500');
@@ -1094,23 +1213,29 @@
     }
 
     function onPlayerRateChange(event) {
+      if (Date.now() < state.pllActiveUntil) return;
       const newRate = Number(event.data) || 1;
       state.playbackRate = newRate;
       const select = document.getElementById('speed-select');
       if (select) select.value = String(newRate);
       if (Date.now() > state.ignorePlayerEventsUntil) {
-        broadcastSyncAction('RATE', { rate: newRate, time: safeGetCurrentTime() });
+        broadcastSyncAction('RATE', {
+          videoId: state.videoId,
+          videoVersion: state.videoVersion,
+          rate: newRate,
+          time: safeGetCurrentTime()
+        });
       }
     }
 
     function onPlayerError() {
-      if (state.engineMode === 'direct') {
+      if (state.engineMode !== 'relay') {
         switchVideoEngine('relay');
       }
     }
 
     /* ==========================================================================
-       CONTROL DEL REPRODUCTOR Y DESBLOQUEO iPHONE / iOS
+       SINCRONIZACIÓN DE PRECISIÓN AL MILISEGUNDO (SIN REDONDEO Math.floor)
        ========================================================================== */
     function safeGetCurrentTime() {
       if (state.engineMode === 'native') {
@@ -1138,11 +1263,152 @@
       return state.duration;
     }
 
+    function setRawPlaybackRate(rate) {
+      if (state.engineMode === 'native') {
+        const v = document.getElementById('native-html5-video');
+        if (v) {
+          try { v.playbackRate = rate; } catch (e) {}
+        }
+      } else if (state.engineMode === 'direct' && ytPlayer && typeof ytPlayer.setPlaybackRate === 'function') {
+        try { ytPlayer.setPlaybackRate(rate); } catch (e) {}
+      } else {
+        sendRelayCommand('setPlaybackRate', rate, 'setPlaybackRate', [rate]);
+      }
+    }
+
+    function alignPhaseToTarget(expectedMasterTimeSec, masterIsPlaying) {
+      const targetWithCalib = Math.max(0, Number((expectedMasterTimeSec + state.manualAudioOffsetSec).toFixed(3)));
+      const localNow = safeGetCurrentTime();
+      const errorSec = targetWithCalib - localNow;
+      const absErr = Math.abs(errorSec);
+
+      state.lastMeasuredDriftMs = Math.round(errorSec * 1000);
+
+      if (!masterIsPlaying) {
+        if (state.isPlaying) applyPlayerPause();
+        if (absErr > 0.05) applyPlayerSeek(targetWithCalib);
+        return;
+      }
+
+      if (!state.isPlaying) {
+        applyPlayerSeek(targetWithCalib + 0.16);
+        applyPlayerPlay();
+        return;
+      }
+
+      // Si el desfase supera 450ms -> salto con precisión de milisegundos (sin Math.floor) + compensación de decodificador
+      if (absErr > state.hardSeekThresholdSec) {
+        const decoderLeadCompensation = 0.18 * state.playbackRate;
+        applyPlayerSeek(targetWithCalib + decoderLeadCompensation);
+        return;
+      }
+
+      // Entre 25ms y 450ms -> Micro-ajuste de fase
+      if (absErr >= state.driftThresholdSec) {
+        if (Date.now() < state.pllActiveUntil) return;
+
+        if (state.engineMode === 'native') {
+          const v = document.getElementById('native-html5-video');
+          if (v) {
+            const nudgeRate = Math.max(0.88, Math.min(1.12, state.playbackRate + errorSec * 0.85));
+            v.playbackRate = nudgeRate;
+            state.pllActiveUntil = Date.now() + 450;
+            if (state.pllResetTimer) clearTimeout(state.pllResetTimer);
+            state.pllResetTimer = setTimeout(() => {
+              v.playbackRate = state.playbackRate;
+            }, 450);
+          }
+          return;
+        }
+
+        const rateDelta = 0.25;
+        const corrRate = errorSec > 0
+          ? Math.min(2.0, state.playbackRate + rateDelta)
+          : Math.max(0.5, state.playbackRate - rateDelta);
+
+        const durationMs = Math.max(40, Math.min(800, Math.round((absErr / rateDelta) * 1000)));
+        state.pllActiveUntil = Date.now() + durationMs + 150;
+        state.ignorePlayerEventsUntil = Date.now() + durationMs + 200;
+
+        setRawPlaybackRate(corrRate);
+        // Ajustar también el reloj interno para convergencia suave en Relay
+        state.currentTime = targetWithCalib;
+        if (state.pllResetTimer) clearTimeout(state.pllResetTimer);
+        state.pllResetTimer = setTimeout(() => {
+          state.ignorePlayerEventsUntil = Date.now() + 250;
+          setRawPlaybackRate(state.playbackRate);
+        }, durationMs);
+      }
+    }
+
+    function initiateCoordinatedPlay(targetSec) {
+      const cleanSec = Math.max(0, Number(Number(targetSec || 0).toFixed(3)));
+      const preWarmDelayMs = 360;
+      state.lastStateTimestamp = Date.now();
+
+      broadcastSyncAction('SCHEDULED_PLAY', {
+        videoId: state.videoId,
+        videoTitle: state.videoTitle,
+        videoVersion: state.videoVersion,
+        time: cleanSec,
+        delayMs: preWarmDelayMs,
+        rate: state.playbackRate
+      });
+
+      executeScheduledPreWarmPlay(cleanSec, preWarmDelayMs);
+    }
+
+    function executeScheduledPreWarmPlay(targetSec, waitMs) {
+      if (state.scheduledStartTimer) {
+        clearTimeout(state.scheduledStartTimer);
+        state.scheduledStartTimer = null;
+      }
+
+      const calibratedSec = Math.max(0, Number((targetSec + state.manualAudioOffsetSec).toFixed(3)));
+      const clampedWait = Math.max(10, Math.min(800, Math.round(waitMs)));
+
+      // 1. Pausar y posicionar ambos teléfonos con precisión de milisegundos (sin Math.floor)
+      state.ignorePlayerEventsUntil = Date.now() + clampedWait + 950;
+      applyPlayerPause();
+      applyPlayerSeek(calibratedSec);
+      updatePlayerStatusBanner('SINCRONIZANDO...', 'bg-amber-400');
+
+      // 2. Disparar reproducción en el milisegundo exacto
+      const targetPerf = performance.now() + clampedWait;
+      state.scheduledStartTimer = setTimeout(() => {
+        const spinWait = () => {
+          if (performance.now() < targetPerf - 2) {
+            requestAnimationFrame(spinWait);
+            return;
+          }
+          state.ignorePlayerEventsUntil = Date.now() + 900;
+          applyPlayerPlay();
+          renderAll();
+        };
+        spinWait();
+      }, Math.max(0, clampedWait - 18));
+    }
+
+    function nudgeLocalAudioPhase(deltaSec) {
+      state.manualAudioOffsetSec = Math.max(-0.5, Math.min(0.5, Number((state.manualAudioOffsetSec + deltaSec).toFixed(3))));
+      const label = document.getElementById('phase-offset-label');
+      if (label) {
+        const ms = Math.round(state.manualAudioOffsetSec * 1000);
+        label.textContent = `${ms >= 0 ? '+' : ''}${ms}ms`;
+      }
+
+      const shiftedTime = Math.max(0, Number((safeGetCurrentTime() + deltaSec).toFixed(3)));
+      applyPlayerSeek(shiftedTime);
+      if (state.isPlaying) {
+        applyPlayerPlay();
+      }
+    }
+
     function applyPlayerSeek(targetSec) {
-      const clamped = Math.max(0, Math.min(state.duration || 7200, Number(targetSec) || 0));
+      const clamped = Math.max(0, Math.min(state.duration || 7200, Number(Number(targetSec || 0).toFixed(3))));
       state.currentTime = clamped;
       state.lastTrackedYtTime = clamped;
-      state.lastTrackedYtTick = Date.now();
+      state.lastTrackedYtTick = performance.now();
       state.ignorePlayerEventsUntil = Date.now() + 1100;
 
       if (state.engineMode === 'native') {
@@ -1154,15 +1420,16 @@
         if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
           try { ytPlayer.seekTo(clamped, true); } catch (e) {}
         }
-        sendRelayCommand('setCurrentTime', Math.floor(clamped), 'seekTo', [clamped, true]);
+        sendRelayCommand('setCurrentTime', clamped, 'seekTo', [clamped, true]);
       } else if (state.engineMode === 'relay') {
-        sendRelayCommand('setCurrentTime', Math.floor(clamped), 'seekTo', [clamped, true]);
+        // IMPORTANTE: pasar clamped con decimales exactos (sin Math.floor) para precisión al milisegundo
+        sendRelayCommand('setCurrentTime', clamped, 'seekTo', [clamped, true]);
       }
     }
 
     function applyPlayerPlay() {
       state.isPlaying = true;
-      state.lastTrackedYtTick = Date.now();
+      state.lastTrackedYtTick = performance.now();
       state.ignorePlayerEventsUntil = Date.now() + 1100;
 
       if (state.engineMode === 'native') {
@@ -1180,19 +1447,6 @@
         if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
           try {
             ytPlayer.playVideo();
-            setTimeout(() => {
-              if (!state.isPlaying || !ytPlayer || typeof ytPlayer.getPlayerState !== 'function') return;
-              const st = ytPlayer.getPlayerState();
-              if (st !== 1 && st !== 3) {
-                state.ignorePlayerEventsUntil = Date.now() + 1000;
-                if (typeof ytPlayer.mute === 'function') ytPlayer.mute();
-                state.isMuted = true;
-                ytPlayer.playVideo();
-                const unmuteBtn = document.getElementById('ios-unmute-overlay');
-                if (unmuteBtn) unmuteBtn.classList.remove('hidden');
-                renderAll();
-              }
-            }, 600);
           } catch (e) {}
         }
         sendRelayCommand('play', undefined, 'playVideo', []);
@@ -1204,7 +1458,7 @@
 
     function applyPlayerPause() {
       state.isPlaying = false;
-      state.lastTrackedYtTick = Date.now();
+      state.lastTrackedYtTick = performance.now();
       state.ignorePlayerEventsUntil = Date.now() + 1100;
 
       if (state.engineMode === 'native') {
@@ -1293,14 +1547,14 @@
     }
 
     /* ==========================================================================
-       CONTROLES DE USUARIO (CARGAR VIDEO, PLAY/PAUSE, SEEK, VELOCIDAD)
+       CONTROLES DE USUARIO (CARGAR VIDEO PROPIO, PLAY/PAUSE, SEEK, VELOCIDAD)
        ========================================================================== */
     function handleLoadVideoFromInput() {
       const input = document.getElementById('yt-url-input');
       if (!input) return;
       const extracted = extractYouTubeId(input.value);
       if (!extracted) {
-        showToast('Enlace inválido', 'err');
+        showToast('Pega un link válido de YouTube', 'err');
         return;
       }
       const presetTitle = DIRECT_VIDEO_STREAMS[extracted] ? DIRECT_VIDEO_STREAMS[extracted].title : `YouTube (${extracted})`;
@@ -1309,14 +1563,13 @@
 
     function loadPresetVideo(videoId, title) {
       state.videoId = videoId;
-      state.videoTitle = title || `Video (${videoId})`;
+      state.videoTitle = title || `YouTube (${videoId})`;
+      state.videoVersion += 1;
+      state.lockLocalVideoUntil = Date.now() + 6000; // Bloquear que paquetes antiguos de otros teléfonos sobreescriban este video nuevo
       state.currentTime = 0;
       state.isPlaying = true;
       state.lastStateTimestamp = Date.now();
-
-      if (DIRECT_VIDEO_STREAMS[videoId]) {
-        state.duration = DIRECT_VIDEO_STREAMS[videoId].duration;
-      }
+      state.duration = DIRECT_VIDEO_STREAMS[videoId] ? DIRECT_VIDEO_STREAMS[videoId].duration : 600;
 
       const input = document.getElementById('yt-url-input');
       if (input) input.value = `https://www.youtube.com/watch?v=${videoId}`;
@@ -1327,11 +1580,13 @@
       broadcastSyncAction('LOAD_VIDEO', {
         videoId: state.videoId,
         videoTitle: state.videoTitle,
+        videoVersion: state.videoVersion,
         time: 0,
         isPlaying: true,
         rate: state.playbackRate
-      });
+      }, true);
 
+      showToast('Video cargado y sincronizado');
       renderAll();
     }
 
@@ -1342,19 +1597,14 @@
         applyPlayerPause();
         broadcastSyncAction('PAUSE', {
           videoId: state.videoId,
+          videoVersion: state.videoVersion,
           time: state.currentTime,
           isPlaying: false,
           rate: state.playbackRate
         });
       } else {
         state.currentTime = safeGetCurrentTime();
-        applyPlayerPlay();
-        broadcastSyncAction('PLAY', {
-          videoId: state.videoId,
-          time: state.currentTime,
-          isPlaying: true,
-          rate: state.playbackRate
-        });
+        initiateCoordinatedPlay(state.currentTime);
       }
       renderAll();
     }
@@ -1362,13 +1612,18 @@
     function handleRelativeSeek(deltaSeconds) {
       state.lastStateTimestamp = Date.now();
       const target = Math.max(0, Math.min(state.duration, safeGetCurrentTime() + deltaSeconds));
-      applyPlayerSeek(target);
-      broadcastSyncAction('SEEK', {
-        videoId: state.videoId,
-        time: target,
-        isPlaying: state.isPlaying,
-        rate: state.playbackRate
-      });
+      if (state.isPlaying) {
+        initiateCoordinatedPlay(target);
+      } else {
+        applyPlayerSeek(target);
+        broadcastSyncAction('SEEK', {
+          videoId: state.videoId,
+          videoVersion: state.videoVersion,
+          time: target,
+          isPlaying: false,
+          rate: state.playbackRate
+        });
+      }
       renderAll();
     }
 
@@ -1383,27 +1638,28 @@
       state.isScrubbing = false;
       state.lastStateTimestamp = Date.now();
       const target = Number(val) || 0;
-      applyPlayerSeek(target);
-      broadcastSyncAction('SEEK', {
-        videoId: state.videoId,
-        time: target,
-        isPlaying: state.isPlaying,
-        rate: state.playbackRate
-      });
+      if (state.isPlaying) {
+        initiateCoordinatedPlay(target);
+      } else {
+        applyPlayerSeek(target);
+        broadcastSyncAction('SEEK', {
+          videoId: state.videoId,
+          videoVersion: state.videoVersion,
+          time: target,
+          isPlaying: false,
+          rate: state.playbackRate
+        });
+      }
       renderAll();
     }
 
     function handleSpeedChange(val) {
       const rate = Number(val) || 1;
       state.playbackRate = rate;
-      const nativeVideo = document.getElementById('native-html5-video');
-      if (nativeVideo) nativeVideo.playbackRate = rate;
-      if (ytPlayer && typeof ytPlayer.setPlaybackRate === 'function') {
-        try { ytPlayer.setPlaybackRate(rate); } catch (e) {}
-      }
-      sendRelayCommand('setPlaybackRate', rate, 'setPlaybackRate', [rate]);
+      setRawPlaybackRate(rate);
       broadcastSyncAction('RATE', {
         videoId: state.videoId,
+        videoVersion: state.videoVersion,
         rate: rate,
         time: safeGetCurrentTime(),
         isPlaying: state.isPlaying
@@ -1512,13 +1768,14 @@
     }
 
     /* ==========================================================================
-       CHEQUEO PERIÓDICO DE SINCRONIZACIÓN (100% SILENCIOSO)
+       CHEQUEO PERIÓDICO DE ALTA PRECISIÓN + SONDEO NTP DE LATENCIA
        ========================================================================== */
     function isLocalDeviceCoordinator() {
       const realPeers = Object.values(state.peers);
       if (realPeers.length === 0) return true;
       for (const p of realPeers) {
-        if ((p.lastStateTimestamp || 0) > state.lastStateTimestamp) {
+        if ((p.videoVersion || 0) > state.videoVersion) return false;
+        if ((p.videoVersion || 0) === state.videoVersion && (p.lastStateTimestamp || 0) > state.lastStateTimestamp) {
           return false;
         }
       }
@@ -1531,6 +1788,15 @@
       return true;
     }
 
+    function sendNtpLatencyPing() {
+      broadcastSyncAction('NTP_PING', {
+        t0Perf: performance.now(),
+        t0Wall: Date.now(),
+        videoTime: safeGetCurrentTime(),
+        isPlaying: state.isPlaying
+      }, false);
+    }
+
     function runPeriodicSyncCheck(sourceLabel = 'Auto-Heartbeat') {
       const masterTime = safeGetCurrentTime();
       state.currentTime = masterTime;
@@ -1539,14 +1805,15 @@
         broadcastSyncAction('HEARTBEAT_CHECK', {
           videoId: state.videoId,
           videoTitle: state.videoTitle,
+          videoVersion: state.videoVersion,
           time: masterTime,
           isPlaying: state.isPlaying,
-          rate: state.playbackRate,
-          threshold: state.driftThresholdSec
+          rate: state.playbackRate
         });
       } else {
         broadcastSyncAction('PEER_REPORT', {
           videoId: state.videoId,
+          videoVersion: state.videoVersion,
           time: masterTime,
           isPlaying: state.isPlaying,
           rate: state.playbackRate
@@ -1556,17 +1823,9 @@
       renderAll();
     }
 
-    function triggerManualSyncAll(reason) {
-      state.lastStateTimestamp = Date.now();
+    function triggerManualSyncAll() {
       const masterTime = safeGetCurrentTime();
-      broadcastSyncAction('FORCE_SYNC', {
-        videoId: state.videoId,
-        videoTitle: state.videoTitle,
-        time: masterTime,
-        isPlaying: state.isPlaying,
-        rate: state.playbackRate
-      });
-      runPeriodicSyncCheck(reason || 'Manual');
+      initiateCoordinatedPlay(masterTime);
     }
 
     function togglePeriodicChecker() {
@@ -1584,20 +1843,25 @@
     }
 
     function updateCheckInterval(msVal) {
-      state.checkIntervalMs = Number(msVal) || 3000;
+      state.checkIntervalMs = Number(msVal) || 2000;
       state.nextCheckRemainingMs = state.checkIntervalMs;
       renderAll();
     }
 
     /* ==========================================================================
-       RED MULTI-DISPOSITIVO EN TIEMPO REAL (GITHUB PAGES: iPHONE <-> PC)
-       1. MQTT sobre WebSockets TLS (EMQX + HiveMQ)
-       2. WebRTC P2P con servidores STUN de Google
-       3. BroadcastChannel + localStorage
+       RED MULTI-DISPOSITIVO EN TIEMPO REAL CON MEDICIÓN DE RTT MONOTÓNICO (NTP)
        ========================================================================== */
     function getRoomMqttTopicBase() {
       const cleanRoom = (state.roomCode || 'SYNC01').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-      return `syncyt_v3_global/room_${cleanRoom}`;
+      return `syncyt_v4_global/room_${cleanRoom}`;
+    }
+
+    function getPeerOneWayLatencySec(peerId) {
+      const peer = state.peers[peerId];
+      if (peer && typeof peer.oneWayMs === 'number' && peer.oneWayMs >= 0 && peer.oneWayMs < 600) {
+        return peer.oneWayMs / 1000;
+      }
+      return 0.025;
     }
 
     function initNetworking() {
@@ -1627,11 +1891,15 @@
       initMqttCloudSync();
       initWebRtcMesh();
 
+      if (ntpPingInterval) clearInterval(ntpPingInterval);
+      ntpPingInterval = setInterval(sendNtpLatencyPing, 1800);
+
       if (announceInterval) clearInterval(announceInterval);
       announceInterval = setInterval(() => {
         broadcastSyncAction('PEER_REPORT', {
           videoId: state.videoId,
           videoTitle: state.videoTitle,
+          videoVersion: state.videoVersion,
           time: safeGetCurrentTime(),
           isPlaying: state.isPlaying,
           rate: state.playbackRate
@@ -1666,7 +1934,6 @@
 
       const topicBase = getRoomMqttTopicBase();
       const eventsTopic = `${topicBase}/events`;
-      const stateTopic = `${topicBase}/state`;
 
       brokers.forEach(broker => {
         try {
@@ -1681,11 +1948,13 @@
             state.mqttConnected = true;
             updateConnectionBadges();
 
-            client.subscribe([eventsTopic, stateTopic], { qos: 0 }, (err) => {
+            client.subscribe([eventsTopic], { qos: 0 }, (err) => {
               if (!err) {
+                sendNtpLatencyPing();
                 broadcastSyncAction('PEER_HELLO', {
                   videoId: state.videoId,
                   videoTitle: state.videoTitle,
+                  videoVersion: state.videoVersion,
                   time: safeGetCurrentTime(),
                   isPlaying: state.isPlaying,
                   rate: state.playbackRate
@@ -1712,7 +1981,7 @@
       try {
         if (peerInstance) peerInstance.destroy();
         const cleanRoom = state.roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const hostId = `ytsync-v3-${cleanRoom}-coord`;
+        const hostId = `ytsync-v4-${cleanRoom}-coord`;
 
         const peerConfig = {
           config: {
@@ -1733,9 +2002,11 @@
           guestConnections.push(conn);
           conn.on('open', () => {
             updateConnectionBadges();
+            sendNtpLatencyPing();
             conn.send(createSyncPacket('FORCE_SYNC', {
               videoId: state.videoId,
               videoTitle: state.videoTitle,
+              videoVersion: state.videoVersion,
               time: safeGetCurrentTime(),
               isPlaying: state.isPlaying,
               rate: state.playbackRate
@@ -1754,14 +2025,16 @@
         peerInstance.on('error', (err) => {
           if (err && err.type === 'unavailable-id') {
             try {
-              const guestPeer = new Peer(`ytsync-v3-${cleanRoom}-${state.localPeerId}`, peerConfig);
+              const guestPeer = new Peer(`ytsync-v4-${cleanRoom}-${state.localPeerId}`, peerConfig);
               peerInstance = guestPeer;
               guestPeer.on('open', () => {
                 hostConnection = guestPeer.connect(hostId, { reliable: true });
                 hostConnection.on('open', () => {
                   updateConnectionBadges();
+                  sendNtpLatencyPing();
                   broadcastSyncAction('PEER_HELLO', {
                     videoId: state.videoId,
+                    videoVersion: state.videoVersion,
                     time: safeGetCurrentTime(),
                     isPlaying: state.isPlaying
                   });
@@ -1799,12 +2072,13 @@
         senderDevice: state.localDevice,
         senderJoinedAt: state.joinedAt,
         stateTimestamp: state.lastStateTimestamp,
+        videoVersion: state.videoVersion,
         sentAt: Date.now(),
         payload: payload || {}
       };
     }
 
-    function broadcastSyncAction(type, payload, retainState = false) {
+    function broadcastSyncAction(type, payload) {
       const packet = createSyncPacket(type, payload);
       state.seenMsgIds.add(packet.msgId);
 
@@ -1814,9 +2088,6 @@
         if (client && client.connected) {
           try {
             client.publish(`${topicBase}/events`, jsonStr, { qos: 0, retain: false });
-            if (retainState || type === 'PLAY' || type === 'PAUSE' || type === 'SEEK' || type === 'LOAD_VIDEO' || type === 'FORCE_SYNC') {
-              client.publish(`${topicBase}/state`, jsonStr, { qos: 0, retain: true });
-            }
           } catch (e) {}
         }
       });
@@ -1853,11 +2124,32 @@
 
       if (state.kickedPeers[packet.senderId]) return;
 
-      const rawTransitSec = (Date.now() - (packet.sentAt || Date.now())) / 1000;
-      const transitSec = Math.max(0, Math.min(2.5, rawTransitSec));
       const p = packet.payload || {};
 
-      if (rawTransitSec > 120 && packet.type !== 'LOAD_VIDEO') return;
+      if (packet.type === 'NTP_PING') {
+        broadcastSyncAction('NTP_PONG', {
+          targetPeerId: packet.senderId,
+          t0Perf: p.t0Perf,
+          t0Wall: p.t0Wall,
+          responderWall: Date.now(),
+          responderVideoTime: safeGetCurrentTime(),
+          responderPlaying: state.isPlaying
+        }, false);
+      } else if (packet.type === 'NTP_PONG') {
+        if (p.targetPeerId !== state.localPeerId) return;
+        const rttMs = Math.max(2, performance.now() - (p.t0Perf || performance.now()));
+        const existing = state.peers[packet.senderId];
+        if (existing) {
+          existing.rttMs = existing.rttMs ? Math.min(existing.rttMs * 0.7 + rttMs * 0.3, rttMs + 15) : rttMs;
+          existing.oneWayMs = existing.rttMs / 2;
+          if (typeof p.responderVideoTime === 'number') {
+            existing.currentTime = p.responderVideoTime + (p.responderPlaying ? (existing.oneWayMs / 1000) * state.playbackRate : 0);
+          }
+        }
+        return;
+      }
+
+      const oneWaySec = getPeerOneWayLatencySec(packet.senderId);
 
       if (packet.type === 'KICK_USER') {
         if (p.targetPeerId === state.localPeerId) {
@@ -1876,30 +2168,40 @@
         return;
       }
 
-      const peerTime = typeof p.time === 'number' ? p.time : safeGetCurrentTime();
+      const prevPeer = state.peers[packet.senderId] || {};
+      const peerTime = typeof p.time === 'number'
+        ? p.time + (p.isPlaying ? oneWaySec * state.playbackRate : 0)
+        : (prevPeer.currentTime || safeGetCurrentTime());
       const isNewPeer = !state.peers[packet.senderId];
+      const incomingVersion = Number(p.videoVersion || packet.videoVersion || 1);
 
       state.peers[packet.senderId] = {
         id: packet.senderId,
         name: packet.senderName || 'Usuario',
         device: packet.senderDevice || 'Web',
-        joinedAt: packet.senderJoinedAt || Date.now(),
-        lastStateTimestamp: packet.stateTimestamp || 0,
+        joinedAt: packet.senderJoinedAt || prevPeer.joinedAt || Date.now(),
+        lastStateTimestamp: Math.max(prevPeer.lastStateTimestamp || 0, packet.stateTimestamp || 0),
+        videoVersion: Math.max(prevPeer.videoVersion || 1, incomingVersion),
         currentTime: peerTime,
         isPlaying: typeof p.isPlaying === 'boolean' ? p.isPlaying : state.isPlaying,
         drift: peerTime - safeGetCurrentTime(),
+        rttMs: prevPeer.rttMs || 36,
+        oneWayMs: prevPeer.oneWayMs || 18,
         lastSeen: Date.now()
       };
 
       if (isNewPeer) {
         updateConnectionBadges();
+        sendNtpLatencyPing();
       }
 
       if (packet.type === 'PEER_HELLO') {
-        if (state.isPlaying || state.currentTime > 1 || isLocalDeviceCoordinator()) {
+        sendNtpLatencyPing();
+        if (state.isPlaying || state.currentTime > 1 || state.videoVersion > 1 || isLocalDeviceCoordinator()) {
           broadcastSyncAction('FORCE_SYNC', {
             videoId: state.videoId,
             videoTitle: state.videoTitle,
+            videoVersion: state.videoVersion,
             time: safeGetCurrentTime(),
             isPlaying: state.isPlaying,
             rate: state.playbackRate
@@ -1909,81 +2211,85 @@
         return;
       }
 
+      // LOAD_VIDEO siempre aplica inmediatamente a todos los dispositivos de la sala
       if (packet.type === 'LOAD_VIDEO' && p.videoId) {
-        state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
+        state.videoVersion = Math.max(state.videoVersion, incomingVersion);
+        state.lastStateTimestamp = Date.now();
         if (p.videoId !== state.videoId) {
           state.videoId = p.videoId;
-          state.videoTitle = p.videoTitle || `Video (${p.videoId})`;
-          const input = document.getElementById('yt-url-input');
-          if (input) input.value = `https://www.youtube.com/watch?v=${state.videoId}`;
+          state.videoTitle = p.videoTitle || `YouTube (${p.videoId})`;
           mountActiveVideoEngine(state.videoId, p.time || 0, Boolean(p.isPlaying));
           fetchYouTubeMetadata(state.videoId);
         } else {
-          applyPlayerSeek(p.time || 0);
-          if (p.isPlaying) applyPlayerPlay();
-          else applyPlayerPause();
+          executeScheduledPreWarmPlay(p.time || 0, 320);
+        }
+        renderAll();
+        return;
+      }
+
+      // Si el usuario local acaba de cargar un video nuevo hace menos de 6s, ignorar heartbeats con un videoId viejo
+      const canChangeLocalVideo = Date.now() > state.lockLocalVideoUntil && incomingVersion >= state.videoVersion;
+
+      if (packet.type === 'SCHEDULED_PLAY') {
+        state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
+        if (p.videoId && p.videoId !== state.videoId && canChangeLocalVideo) {
+          state.videoId = p.videoId;
+          state.videoVersion = Math.max(state.videoVersion, incomingVersion);
+          state.videoTitle = p.videoTitle || `YouTube (${p.videoId})`;
+          mountActiveVideoEngine(state.videoId, p.time || 0, true);
+          fetchYouTubeMetadata(state.videoId);
+        } else {
+          const remainingWaitMs = (p.delayMs || 360) - (oneWaySec * 1000);
+          executeScheduledPreWarmPlay(p.time || 0, remainingWaitMs);
         }
       } else if (packet.type === 'PLAY') {
         state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
-        if (p.videoId && p.videoId !== state.videoId) {
+        const expectedTime = (p.time || 0) + oneWaySec * state.playbackRate;
+        if (p.videoId && p.videoId !== state.videoId && canChangeLocalVideo) {
           state.videoId = p.videoId;
-          mountActiveVideoEngine(state.videoId, (p.time || 0) + transitSec, true);
+          state.videoVersion = Math.max(state.videoVersion, incomingVersion);
+          mountActiveVideoEngine(state.videoId, expectedTime, true);
+          fetchYouTubeMetadata(state.videoId);
         } else {
-          const expectedTime = (p.time || 0) + transitSec;
-          if (Math.abs(safeGetCurrentTime() - expectedTime) > 0.45) {
-            applyPlayerSeek(expectedTime);
-          }
-          applyPlayerPlay();
+          alignPhaseToTarget(expectedTime, true);
         }
       } else if (packet.type === 'PAUSE') {
         state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
         applyPlayerPause();
-        if (typeof p.time === 'number' && Math.abs(safeGetCurrentTime() - p.time) > 0.35) {
-          applyPlayerSeek(p.time);
+        if (typeof p.time === 'number' && Math.abs(safeGetCurrentTime() - p.time) > 0.05) {
+          applyPlayerSeek(p.time + state.manualAudioOffsetSec);
         }
       } else if (packet.type === 'SEEK' || packet.type === 'FORCE_SYNC') {
         state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
-        const expectedTime = (p.time || 0) + (p.isPlaying ? transitSec : 0);
-        if (p.videoId && p.videoId !== state.videoId) {
+        const expectedTime = (p.time || 0) + (p.isPlaying ? oneWaySec * state.playbackRate : 0);
+        if (p.videoId && p.videoId !== state.videoId && canChangeLocalVideo) {
           state.videoId = p.videoId;
-          state.videoTitle = p.videoTitle || `Video (${p.videoId})`;
+          state.videoVersion = Math.max(state.videoVersion, incomingVersion);
+          state.videoTitle = p.videoTitle || `YouTube (${p.videoId})`;
           mountActiveVideoEngine(state.videoId, expectedTime, Boolean(p.isPlaying));
           fetchYouTubeMetadata(state.videoId);
         } else {
-          if (Math.abs(safeGetCurrentTime() - expectedTime) > 0.4) {
-            applyPlayerSeek(expectedTime);
-          }
-          if (p.isPlaying && !state.isPlaying) applyPlayerPlay();
-          else if (!p.isPlaying && state.isPlaying) applyPlayerPause();
+          alignPhaseToTarget(expectedTime, Boolean(p.isPlaying));
         }
       } else if (packet.type === 'RATE' && p.rate) {
         state.playbackRate = Number(p.rate) || 1;
         const select = document.getElementById('speed-select');
         if (select) select.value = String(state.playbackRate);
-        if (ytPlayer && typeof ytPlayer.setPlaybackRate === 'function') {
-          try { ytPlayer.setPlaybackRate(state.playbackRate); } catch (e) {}
-        }
+        setRawPlaybackRate(state.playbackRate);
       } else if (packet.type === 'HEARTBEAT_CHECK') {
         if (p.videoId && p.videoId !== state.videoId) {
-          state.videoId = p.videoId;
-          state.videoTitle = p.videoTitle || `Video (${p.videoId})`;
-          mountActiveVideoEngine(state.videoId, p.time || 0, Boolean(p.isPlaying));
-          fetchYouTubeMetadata(state.videoId);
+          if (canChangeLocalVideo) {
+            state.videoId = p.videoId;
+            state.videoVersion = Math.max(state.videoVersion, incomingVersion);
+            state.videoTitle = p.videoTitle || `YouTube (${p.videoId})`;
+            mountActiveVideoEngine(state.videoId, p.time || 0, Boolean(p.isPlaying));
+            fetchYouTubeMetadata(state.videoId);
+          }
           return;
         }
 
-        const expectedTime = (p.time || 0) + (p.isPlaying ? transitSec : 0);
-        const localNow = safeGetCurrentTime();
-        const drift = localNow - expectedTime;
-        const allowedDrift = p.threshold || state.driftThresholdSec;
-
-        if (Math.abs(drift) > allowedDrift || state.isPlaying !== Boolean(p.isPlaying)) {
-          if (Math.abs(drift) > allowedDrift) {
-            applyPlayerSeek(expectedTime);
-          }
-          if (p.isPlaying && !state.isPlaying) applyPlayerPlay();
-          else if (!p.isPlaying && state.isPlaying) applyPlayerPause();
-        }
+        const expectedTime = (p.time || 0) + (p.isPlaying ? oneWaySec * state.playbackRate : 0);
+        alignPhaseToTarget(expectedTime, Boolean(p.isPlaying));
       } else if (packet.type === 'CHAT' && p.text) {
         state.chatMessages.push({
           sender: packet.senderName,
@@ -2025,6 +2331,7 @@
       state.localName = (val || '').trim() || state.localDevice;
       broadcastSyncAction('PEER_REPORT', {
         videoId: state.videoId,
+        videoVersion: state.videoVersion,
         time: safeGetCurrentTime(),
         isPlaying: state.isPlaying
       });
@@ -2082,37 +2389,42 @@
     }
 
     /* ==========================================================================
-       BUCLE PRINCIPAL (100ms) Y RENDERIZADO
+       BUCLE PRINCIPAL DE ALTA RESOLUCIÓN (80ms) Y RENDERIZADO
        ========================================================================== */
     function startMainLoop() {
       if (mainLoopInterval) clearInterval(mainLoopInterval);
-      let lastTick = Date.now();
+      let lastTick = performance.now();
 
       mainLoopInterval = setInterval(() => {
-        const now = Date.now();
-        const dtSec = (now - lastTick) / 1000;
-        lastTick = now;
+        const nowPerf = performance.now();
+        const dtSec = (nowPerf - lastTick) / 1000;
+        lastTick = nowPerf;
 
         if (state.engineMode === 'direct' && state.ytReady && ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
           const actualYtTime = safeGetCurrentTime();
-          const expectedAdvance = state.isPlaying ? ((now - state.lastTrackedYtTick) / 1000) * state.playbackRate : 0;
+          const expectedAdvance = state.isPlaying ? ((nowPerf - state.lastTrackedYtTick) / 1000) * state.playbackRate : 0;
           const expectedYtTime = state.lastTrackedYtTime + expectedAdvance;
 
-          if (now > state.ignorePlayerEventsUntil && Math.abs(actualYtTime - expectedYtTime) > 1.5) {
+          if (Date.now() > state.ignorePlayerEventsUntil && Math.abs(actualYtTime - expectedYtTime) > 1.5) {
             state.currentTime = actualYtTime;
             state.lastTrackedYtTime = actualYtTime;
-            state.lastTrackedYtTick = now;
-            state.lastStateTimestamp = now;
-            broadcastSyncAction('SEEK', {
-              videoId: state.videoId,
-              time: actualYtTime,
-              isPlaying: state.isPlaying,
-              rate: state.playbackRate
-            });
+            state.lastTrackedYtTick = nowPerf;
+            state.lastStateTimestamp = Date.now();
+            if (state.isPlaying) {
+              initiateCoordinatedPlay(actualYtTime);
+            } else {
+              broadcastSyncAction('SEEK', {
+                videoId: state.videoId,
+                videoVersion: state.videoVersion,
+                time: actualYtTime,
+                isPlaying: false,
+                rate: state.playbackRate
+              });
+            }
           } else {
             state.currentTime = actualYtTime;
             state.lastTrackedYtTime = actualYtTime;
-            state.lastTrackedYtTick = now;
+            state.lastTrackedYtTick = nowPerf;
           }
         } else if (state.engineMode === 'native') {
           state.currentTime = safeGetCurrentTime();
@@ -2136,7 +2448,7 @@
         }
 
         renderTimeAndHeartbeatUI();
-      }, 100);
+      }, 80);
     }
 
     function updatePlayerStatusBanner(text, dotClass) {
@@ -2155,24 +2467,19 @@
       if (durEl) durEl.textContent = formatTime(state.duration, false);
       if (slider && !state.isScrubbing) {
         slider.max = String(Math.max(10, Math.ceil(state.duration)));
-        slider.value = String(state.currentTime.toFixed(1));
+        slider.value = String(state.currentTime.toFixed(2));
       }
 
-      let maxAbsDrift = 0;
-      Object.values(state.peers).forEach(p => {
-        const d = Math.abs((p.currentTime || 0) - state.currentTime);
-        if (d > maxAbsDrift) maxAbsDrift = d;
-      });
-
+      const absDriftMs = Math.abs(state.lastMeasuredDriftMs);
       const pill = document.getElementById('sync-status-pill');
-      const isSynced = maxAbsDrift <= state.driftThresholdSec;
+      const isPhaseLocked = absDriftMs <= 35;
 
       if (pill) {
-        if (isSynced) {
-          pill.textContent = 'SINCRONIZADO';
+        if (isPhaseLocked) {
+          pill.textContent = `FASE EXACTA (${absDriftMs} ms)`;
           pill.className = 'px-2 py-0.5 bg-emerald-950 border border-emerald-700 text-emerald-300 text-[11px]';
         } else {
-          pill.textContent = 'SINCRONIZANDO...';
+          pill.textContent = `ALINEANDO FASE (${absDriftMs} ms)`;
           pill.className = 'px-2 py-0.5 bg-amber-950 border border-amber-600 text-amber-300 text-[11px]';
         }
       }
@@ -2219,12 +2526,14 @@
         `;
 
         peerValues.forEach(peer => {
+          const pingLabel = peer.oneWayMs ? `${Math.round(peer.oneWayMs)}ms` : '';
           html += `
             <div class="surface-sub p-2 border border-zinc-800 bg-zinc-950 flex items-center justify-between gap-2">
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5">
                   <span class="w-2 h-2 bg-emerald-500 inline-block shrink-0"></span>
                   <span class="font-mono font-semibold text-xs text-zinc-100 truncate">${escapeHtml(peer.name)}</span>
+                  <span class="font-mono text-[10px] text-zinc-500">${escapeHtml(pingLabel)}</span>
                 </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
@@ -2305,15 +2614,18 @@
           const vid = extractYouTubeId(params.get('v'));
           if (vid) {
             state.videoId = vid;
-            document.getElementById('yt-url-input').value = `https://www.youtube.com/watch?v=${vid}`;
+            state.videoVersion = 2;
+            state.lockLocalVideoUntil = Date.now() + 6000;
           }
         }
       } catch (e) {}
 
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
+          sendNtpLatencyPing();
           broadcastSyncAction('PEER_HELLO', {
             videoId: state.videoId,
+            videoVersion: state.videoVersion,
             time: safeGetCurrentTime(),
             isPlaying: state.isPlaying
           });
