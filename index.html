@@ -6,8 +6,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>SYNC.YT — Sala Sincronizada de YouTube (Sin Error 153)</title>
+  <title>SYNC.YT — Sala Sincronizada de YouTube</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -146,13 +147,13 @@
     </div>
   </div>
 
-  <!-- BARRA SUPERIOR DE NOTIFICACIÓN / TOAST PLANO -->
-  <div id="toast-bar" class="hidden fixed top-3 left-3 right-3 z-50 max-w-lg mx-auto bg-zinc-900 text-zinc-100 border-2 border-zinc-100 px-4 py-3 shadow-none flex items-center justify-between gap-3">
-    <div class="flex items-center gap-2.5 text-sm font-medium">
-      <span id="toast-dot" class="w-2.5 h-2.5 bg-emerald-500 inline-block shrink-0"></span>
-      <span id="toast-message">Sincronizado</span>
+  <!-- BARRA DE AVISO DISCRETA (OCULTA POR DEFECTO; CERO NOTIFICACIONES DE CORRECCIÓN DE SINCRONÍA) -->
+  <div id="toast-bar" class="hidden fixed bottom-3 right-3 z-40 max-w-xs bg-zinc-900 text-zinc-100 border border-zinc-700 px-3 py-2 shadow-none flex items-center justify-between gap-2">
+    <div class="flex items-center gap-2 text-xs font-mono">
+      <span id="toast-dot" class="w-2 h-2 bg-emerald-500 inline-block shrink-0"></span>
+      <span id="toast-message">Listo</span>
     </div>
-    <button id="btn-close-toast" type="button" onclick="hideToast()" class="text-xs font-mono uppercase px-2 py-1 border border-zinc-700 bg-zinc-800 text-zinc-300 active:bg-zinc-700">
+    <button id="btn-close-toast" type="button" onclick="hideToast()" class="text-[10px] font-mono uppercase px-1.5 py-0.5 border border-zinc-700 bg-zinc-800 text-zinc-300">
       Cerrar
     </button>
   </div>
@@ -160,12 +161,12 @@
   <!-- CABECERA MINIMALISTA PLANA -->
   <header class="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-30">
     <div class="max-w-6xl mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
-      <!-- Marca y Estado -->
+      <!-- Marca y Estado de Red Cloud Multi-Dispositivo -->
       <div class="flex items-center gap-2.5 min-w-0">
         <div class="w-3.5 h-3.5 bg-red-600 shrink-0" aria-hidden="true"></div>
         <span class="font-mono font-bold tracking-tight text-base sm:text-lg text-white truncate">SYNC.YT</span>
         <span id="connection-badge" class="font-mono text-[11px] uppercase px-2 py-0.5 border border-emerald-700 bg-emerald-950 text-emerald-300 shrink-0">
-          SALA ACTIVA
+          CONECTANDO NUBE...
         </span>
       </div>
 
@@ -188,16 +189,16 @@
   </header>
 
   <!-- BANNER ESPECIAL PARA iPHONE / iOS SAFARI (DESBLOQUEO DE REPRODUCCIÓN Y AUDIO REMOTO) -->
-  <section id="ios-unlock-banner" class="border-b border-amber-700 bg-amber-950 text-amber-100 px-3 sm:px-5 py-2.5">
+  <section id="ios-unlock-banner" class="border-b border-zinc-800 bg-zinc-900 text-zinc-200 px-3 sm:px-5 py-2">
     <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-      <div class="flex items-start sm:items-center gap-2 text-xs sm:text-sm">
-        <span class="font-mono font-bold uppercase px-1.5 py-0.5 bg-amber-400 text-zinc-950 text-[11px] shrink-0">iOS / iPhone</span>
-        <span id="ios-banner-text">
-          Bypass Error 153 activo (Relay HTTPS + Player.js). En iPhone toca una vez aquí para autorizar audio y sincronización automática.
+      <div class="flex items-start sm:items-center gap-2 text-xs">
+        <span class="font-mono font-bold uppercase px-1.5 py-0.5 bg-zinc-200 text-zinc-950 text-[10px] shrink-0">iPhone / iOS</span>
+        <span id="ios-banner-text" class="text-zinc-300">
+          En iPhone (Safari), toca una vez este botón para permitir que la PC u otros celulares inicien tu reproductor con sonido.
         </span>
       </div>
       <div class="flex items-center gap-2 w-full sm:w-auto">
-        <button id="btn-ios-unlock" type="button" onclick="unlockIosPlayback()" class="w-full sm:w-auto px-3 py-1.5 bg-amber-400 text-zinc-950 font-mono font-semibold text-xs uppercase border border-amber-300 active:bg-amber-300">
+        <button id="btn-ios-unlock" type="button" onclick="unlockIosPlayback()" class="w-full sm:w-auto px-3 py-1 bg-zinc-100 text-zinc-950 font-mono font-semibold text-xs uppercase border border-zinc-300 active:bg-zinc-300">
           Autorizar Sincronización en iPhone
         </button>
       </div>
@@ -233,7 +234,7 @@
 
       <!-- Botones rápidos de videos de YouTube -->
       <div class="mt-3 pt-2.5 border-t border-zinc-800 flex flex-wrap items-center gap-1.5">
-        <span class="text-[11px] font-mono uppercase text-zinc-400 mr-1">Videos rápidos de YouTube:</span>
+        <span class="text-[11px] font-mono uppercase text-zinc-400 mr-1">Videos rápidos:</span>
         <button type="button" onclick="loadPresetVideo('aqz-KE-bpKQ', 'Big Buck Bunny 60fps')" class="surface-sub px-2.5 py-1 border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 text-xs font-mono text-zinc-200">
           1. Big Buck Bunny
         </button>
@@ -258,33 +259,42 @@
       <!-- COLUMNA IZQUIERDA (7 cols): REPRODUCTOR DE YOUTUBE + BARRA DE CONTROL SINCRONIZADO -->
       <div class="lg:col-span-7 flex flex-col gap-4">
 
-        <!-- MARCO DEL REPRODUCTOR DE YOUTUBE CON SELECTOR ANTI-ERROR 153 -->
+        <!-- MARCO DEL REPRODUCTOR DE YOUTUBE -->
         <div class="surface-card border border-zinc-800 bg-zinc-900">
           <!-- Barra de estado superior del reproductor -->
           <div class="px-3 py-2 border-b border-zinc-800 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
             <div class="flex items-center gap-2 truncate min-w-0">
               <span id="player-state-dot" class="w-2.5 h-2.5 bg-emerald-500 inline-block shrink-0"></span>
-              <span id="player-state-text" class="font-semibold text-zinc-200">LISTO SIN ERROR 153</span>
+              <span id="player-state-text" class="font-semibold text-zinc-200">LISTO</span>
               <span class="text-zinc-600">|</span>
               <span id="active-video-title" class="text-zinc-400 truncate">Big Buck Bunny 60fps (aqz-KE-bpKQ)</span>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
-              <span id="engine-mode-badge" class="surface-sub px-1.5 py-0.5 border border-emerald-700 bg-emerald-950 text-[11px] text-emerald-300">
-                RELAY ANTI-153 ACTIVO
+              <span id="engine-mode-badge" class="surface-sub px-1.5 py-0.5 border border-zinc-700 bg-zinc-950 text-[11px] text-zinc-300">
+                YT PLAYER
               </span>
             </div>
           </div>
 
-          <!-- Selector de Motor de Reproducción (Solución definitiva al Error 153 en iframes/iOS) -->
+          <!-- Selector de Motor de Reproducción -->
           <div class="px-3 py-2 border-b border-zinc-800 bg-zinc-950 surface-sub flex flex-wrap items-center justify-between gap-2">
-            <span class="font-mono text-[11px] text-zinc-400 uppercase">Motor de Video (Bypass Error 153):</span>
+            <span class="font-mono text-[11px] text-zinc-400 uppercase">Modo de Reproductor:</span>
             <div class="flex flex-wrap gap-1.5">
+              <button
+                id="btn-engine-direct"
+                type="button"
+                onclick="switchVideoEngine('direct')"
+                class="px-2.5 py-1 font-mono text-[11px] uppercase border border-red-500 bg-red-600 text-white font-semibold"
+                title="Reproductor oficial YouTube IFrame API (óptimo para GitHub Pages entre PC y iPhone)"
+              >
+                3. YT IFrame Directo
+              </button>
               <button
                 id="btn-engine-relay"
                 type="button"
                 onclick="switchVideoEngine('relay')"
-                class="px-2.5 py-1 font-mono text-[11px] uppercase border border-red-500 bg-red-600 text-white font-semibold"
-                title="Enruta el reproductor oficial de YouTube a través del widget HTTPS de Embedly para enviar un Referer válido y eliminar el Error 153"
+                class="px-2.5 py-1 font-mono text-[11px] uppercase border border-zinc-700 bg-zinc-900 text-zinc-300"
+                title="Widget Relay HTTPS (para vistas previas en iframes sin Referer)"
               >
                 1. YouTube Relay (Sin Error 153)
               </button>
@@ -293,28 +303,21 @@
                 type="button"
                 onclick="switchVideoEngine('native')"
                 class="px-2.5 py-1 font-mono text-[11px] uppercase border border-zinc-700 bg-zinc-900 text-zinc-300"
-                title="Reproductor HTML5 <video> nativo en iPhone/móvil sin iframe (sincronización exacta al milisegundo)"
+                title="Reproductor HTML5 <video> nativo en iPhone/móvil"
               >
                 2. Stream Directo HTML5 (iOS Nativo)
-              </button>
-              <button
-                id="btn-engine-direct"
-                type="button"
-                onclick="switchVideoEngine('direct')"
-                class="px-2.5 py-1 font-mono text-[11px] uppercase border border-zinc-700 bg-zinc-900 text-zinc-300"
-                title="Iframe directo youtube.com/embed con referrerpolicy=strict-origin-when-cross-origin"
-              >
-                3. YT IFrame Directo
               </button>
             </div>
           </div>
 
           <!-- Escenario 16:9 -->
           <div class="video-stage" id="video-stage-container">
-            <!-- Contenedor donde se monta el reproductor activo (Relay HTTPS, HTML5 <video>, o YT IFrame) -->
-            <div id="yt-player-mount" class="w-full h-full"></div>
+            <div id="yt-player-mount" class="w-full h-full">
+              <iframe id="direct-yt-iframe" class=" hidden" title="YouTube Direct"></iframe>
+              <iframe id="relay-youtube-iframe" class="hidden" title="YouTube Relay"></iframe>
+            </div>
 
-            <!-- Reproductor HTML5 <video> nativo (para Modo 2 o fallback automático sin Error 153) -->
+            <!-- Reproductor HTML5 <video> nativo -->
             <video
               id="native-html5-video"
               class="hidden"
@@ -334,13 +337,13 @@
               Sonido silenciado por iPhone — Toca para activar audio
             </button>
 
-            <!-- Aviso de error de inserción de YouTube con cambio en 1 clic -->
+            <!-- Aviso de error de inserción de YouTube -->
             <div id="yt-error-overlay" class="hidden absolute inset-0 z-20 bg-zinc-950 p-4 flex flex-col items-center justify-center text-center border border-red-700">
               <p class="font-mono font-bold text-sm text-red-400 uppercase mb-1" id="yt-error-title">
                 Restricción de inserción detectada
               </p>
               <p class="text-xs text-zinc-300 max-w-md mb-3" id="yt-error-desc">
-                Cambiando automáticamente al motor anti-bloqueo para reproducir el video.
+                Cambiando automáticamente al modo compatible.
               </p>
               <div class="flex flex-wrap justify-center gap-2">
                 <button type="button" onclick="switchVideoEngine('relay')" class="px-3 py-1.5 bg-red-600 text-white font-mono text-xs uppercase border border-red-500">
@@ -366,7 +369,7 @@
               <div class="flex items-center justify-between font-mono text-xs text-zinc-300 mb-1.5">
                 <span id="time-current">00:00.0</span>
                 <span id="sync-status-pill" class="px-2 py-0.5 bg-emerald-950 border border-emerald-700 text-emerald-300 text-[11px]">
-                  TODOS EN EL MISMO PUNTO (Δ 0.00s)
+                  SINCRONIZADO (Δ 0.00s)
                 </span>
                 <span id="time-duration">09:56</span>
               </div>
@@ -417,9 +420,9 @@
               <button
                 id="btn-force-sync"
                 type="button"
-                onclick="triggerManualSyncAll('Botón Forzar Sincronización')"
+                onclick="triggerManualSyncAll('Manual')"
                 class="col-span-2 sm:col-span-1 min-h-[44px] px-3 py-2 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-mono font-semibold text-xs uppercase border border-red-500"
-                title="Forzar que todos los usuarios salten inmediatamente a tu punto exacto del video"
+                title="Forzar que todos los dispositivos salten inmediatamente a tu punto exacto del video"
               >
                 Sincronizar Ya
               </button>
@@ -451,14 +454,12 @@
                 </select>
               </div>
 
-              <!-- Herramienta para probar y demostrar la auto-corrección del chequeo periódico -->
               <div class="flex items-center gap-1.5">
                 <button
                   id="btn-test-drift"
                   type="button"
                   onclick="simulateIntentionalDrift()"
                   class="px-2.5 py-1.5 border border-amber-600 bg-amber-950 text-amber-200 hover:bg-amber-900 text-[11px]"
-                  title="Desfasa intencionalmente un usuario +3.5s para comprobar cómo el chequeo periódico lo detecta y corrige solo"
                 >
                   Simular Desfase (+3.5s)
                 </button>
@@ -467,16 +468,16 @@
           </div>
         </div>
 
-        <!-- PANEL DEL MOTOR DE CHEQUEO PERIÓDICO (HEARTBEAT DRIFT CHECKER) -->
+        <!-- PANEL DEL MOTOR DE CHEQUEO PERIÓDICO (HEARTBEAT DRIFT CHECKER SILENCIOSO) -->
         <section class="surface-card border border-zinc-800 bg-zinc-900 p-3 sm:p-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-zinc-800">
             <div>
               <h2 class="font-mono font-bold text-xs sm:text-sm uppercase tracking-wider text-white flex items-center gap-2">
                 <span id="heartbeat-pulse-box" class="w-2.5 h-2.5 bg-emerald-500 inline-block"></span>
-                Chequeo Periódico de Sincronización (Auto-Heartbeat)
+                Chequeo Periódico Silencioso (Auto-Sync)
               </h2>
               <p class="text-xs text-zinc-400 mt-0.5">
-                Verifica automáticamente cada tanto si todos están en el mismo punto del video y re-sincroniza cualquier desfase.
+                Comprueba cada pocos segundos que el iPhone, la PC y demás dispositivos estén en el mismo punto y los alinea en segundo plano sin notificaciones molestas.
               </p>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -527,7 +528,7 @@
 
             <div class="surface-sub border border-zinc-800 bg-zinc-950 p-2.5">
               <span class="block font-mono text-[10px] uppercase text-zinc-400 mb-1">Próximo Chequeo</span>
-              <div class="font-mono font-bold text-sm text-white" id="next-check-countdown">2.4s</div>
+              <div class="font-mono font-bold text-sm text-white" id="next-check-countdown">3.0s</div>
               <div class="w-full h-1.5 bg-zinc-800 mt-1.5 overflow-hidden">
                 <div id="check-progress-bar" class="h-full bg-emerald-500" style="width: 20%;"></div>
               </div>
@@ -546,28 +547,28 @@
         </section>
       </div>
 
-      <!-- COLUMNA DERECHA (5 cols): CONEXIÓN MULTI-USUARIO, MODERACIÓN / EXPULSIÓN, CHAT Y DEBUGGER -->
+      <!-- COLUMNA DERECHA (5 cols): CONEXIÓN MULTI-DISPOSITIVO, MODERACIÓN / EXPULSIÓN, CHAT Y DEBUGGER -->
       <div class="lg:col-span-5 flex flex-col gap-4">
 
-        <!-- GESTIÓN DE SALA Y CONEXIÓN P2P / MULTI-DISPOSITIVO -->
+        <!-- GESTIÓN DE SALA Y CONEXIÓN MULTI-DISPOSITIVO (GITHUB PAGES / IPHONE / PC) -->
         <section class="surface-card border border-zinc-800 bg-zinc-900 p-3 sm:p-4">
           <div class="flex items-center justify-between mb-3">
             <h2 class="font-mono font-bold text-xs sm:text-sm uppercase tracking-wider text-white">
-              Conexión de Sala (2 o Más Usuarios)
+              Sala Multi-Dispositivo (iPhone + PC)
             </h2>
             <span id="role-badge" class="surface-sub font-mono text-[11px] uppercase px-2 py-0.5 bg-zinc-950 border border-zinc-700 text-zinc-200">
-              ANFITRIÓN (HOST)
+              CONECTADO EN SALA
             </span>
           </div>
 
           <!-- Tu Nombre y Código de Sala -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
             <div>
-              <label for="user-name-input" class="block font-mono text-[10px] uppercase text-zinc-400 mb-1">Tu Nombre</label>
+              <label for="user-name-input" class="block font-mono text-[10px] uppercase text-zinc-400 mb-1">Tu Dispositivo / Nombre</label>
               <input
                 id="user-name-input"
                 type="text"
-                value="Danilo (iPhone)"
+                value="Dispositivo"
                 onchange="updateLocalUserName(this.value)"
                 class="surface-sub w-full bg-zinc-950 border border-zinc-700 px-2.5 py-2 text-zinc-100 font-mono md-text-sm"
               />
@@ -606,8 +607,8 @@
             </button>
           </div>
 
-          <p id="p2p-status-line" class="mt-2.5 font-mono text-[11px] text-zinc-400">
-            Red triple activa: WebRTC (PeerJS entre móviles/PC) + BroadcastChannel + Storage Sync.
+          <p id="p2p-status-line" class="mt-2.5 font-mono text-[11px] text-emerald-400">
+            Sincronización Cloud activa: abre esta misma sala (SYNC01) en tu iPhone y en tu PC para sincronizar al instante.
           </p>
         </section>
 
@@ -616,10 +617,10 @@
           <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>
               <h2 class="font-mono font-bold text-xs sm:text-sm uppercase tracking-wider text-white">
-                Usuarios en Sala (<span id="peer-count-badge">2</span>)
+                Usuarios en Sala (<span id="peer-count-badge">1</span>)
               </h2>
               <p class="text-[11px] text-zinc-400">
-                Punto del video en vivo, desfase (Δ) y botón para expulsar personas.
+                Dispositivos conectados en vivo y botón para expulsar personas.
               </p>
             </div>
             <div class="flex items-center gap-1.5">
@@ -628,7 +629,6 @@
                 type="button"
                 onclick="addSimulatedPeer()"
                 class="surface-sub px-2.5 py-1.5 border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 text-zinc-200 font-mono text-[11px] uppercase shrink-0"
-                title="Añade un usuario simulado para probar la sincronización o la expulsión de personas"
               >
                 + Simular Usuario
               </button>
@@ -637,7 +637,6 @@
                 type="button"
                 onclick="kickAllParticipants()"
                 class="px-2.5 py-1.5 border border-red-700 bg-red-950 hover:bg-red-900 text-red-200 font-mono text-[11px] uppercase shrink-0"
-                title="Expulsar a todos los invitados de la sala"
               >
                 Expulsar Todos
               </button>
@@ -660,7 +659,7 @@
           </div>
         </section>
 
-        <!-- PESTAÑAS: CONSOLA DE DEBUG (iOS / YOUTUBE / SYNC) Y CHAT DE SALA -->
+        <!-- PESTAÑAS: CONSOLA DE DEBUG Y CHAT DE SALA -->
         <section class="surface-card border border-zinc-800 bg-zinc-900 flex-1 flex flex-col">
           <div class="grid grid-cols-2 border-b border-zinc-800 font-mono text-xs uppercase">
             <button
@@ -683,10 +682,9 @@
 
           <!-- VISTA 1: CONSOLA DE DEPURACIÓN Y DIAGNÓSTICO EN TIEMPO REAL -->
           <div id="panel-debug" class="p-3 flex flex-col gap-2.5">
-            <!-- Tarjetas de estado técnico -->
             <div class="grid grid-cols-2 gap-2 font-mono text-[11px]">
               <div class="surface-sub p-2 border border-zinc-800 bg-zinc-950">
-                <span class="text-zinc-500 block">ENTORNO / MÓVIL:</span>
+                <span class="text-zinc-500 block">DISPOSITIVO ACTUAL:</span>
                 <span id="diag-platform" class="text-zinc-200 font-semibold">Detectando...</span>
               </div>
               <div class="surface-sub p-2 border border-zinc-800 bg-zinc-950">
@@ -694,8 +692,8 @@
                 <span id="diag-playsinline" class="text-emerald-400 font-semibold">ACTIVO (playsinline=1)</span>
               </div>
               <div class="surface-sub p-2 border border-zinc-800 bg-zinc-950">
-                <span class="text-zinc-500 block">ESTADO YT API:</span>
-                <span id="diag-yt-api" class="text-emerald-400 font-semibold">Relay HTTPS Anti-153</span>
+                <span class="text-zinc-500 block">MOTOR DE VIDEO:</span>
+                <span id="diag-yt-api" class="text-emerald-400 font-semibold">Inicializando...</span>
               </div>
               <div class="surface-sub p-2 border border-zinc-800 bg-zinc-950">
                 <span class="text-zinc-500 block">DESFASE MÁX SALA:</span>
@@ -703,7 +701,6 @@
               </div>
             </div>
 
-            <!-- Acciones de autodiagnóstico -->
             <div class="flex flex-wrap gap-1.5">
               <button
                 id="btn-run-self-test"
@@ -723,7 +720,6 @@
               </button>
             </div>
 
-            <!-- Log de eventos en tiempo real -->
             <div
               id="debug-log-output"
               class="surface-sub h-44 overflow-y-auto border border-zinc-800 bg-zinc-950 p-2.5 font-mono text-[11px] space-y-1 text-zinc-300"
@@ -762,7 +758,6 @@
   <script>
     /* ==========================================================================
        CATÁLOGO DE STREAMS DIRECTOS DE RESPALDO Y METADATOS DE YOUTUBE
-       Garantiza reproducción inmediata incluso en redes con bloqueo de iframe
        ========================================================================== */
     const DIRECT_VIDEO_STREAMS = {
       'aqz-KE-bpKQ': {
@@ -793,23 +788,55 @@
     };
 
     /* ==========================================================================
-       ESTADO GLOBAL DE LA APLICACIÓN DE SINCRONIZACIÓN DE YOUTUBE
+       DETECCIÓN AUTOMÁTICA DE ENTORNO (GITHUB PAGES vs IFRAME PREVIEW)
+       En GitHub Pages / servidor web (https:// o http:// con origen real),
+       usamos por defecto 'direct' (YT.Player oficial con soporte completo de eventos).
+       En un sandbox srcdoc sin origen ('null'), usamos 'relay' para evitar Error 153.
        ========================================================================== */
+    function detectInitialEngineMode() {
+      try {
+        const isHttpOrigin = (window.location.protocol === 'https:' || window.location.protocol === 'http:') &&
+          window.location.origin &&
+          window.location.origin !== 'null' &&
+          !window.location.hostname.includes('usercontent.goog');
+        return isHttpOrigin ? 'direct' : 'relay';
+      } catch (e) {
+        return 'direct';
+      }
+    }
+
+    function detectIsIos() {
+      const ua = navigator.userAgent || '';
+      const isIPhoneIPad = /iPhone|iPad|iPod/i.test(ua);
+      const isTouchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+      return isIPhoneIPad || isTouchMac;
+    }
+
+    function detectDeviceLabel() {
+      const ua = navigator.userAgent || '';
+      if (/iPhone/i.test(ua)) return 'iPhone (Safari)';
+      if (/iPad/i.test(ua)) return 'iPad (iOS)';
+      if (/Android/i.test(ua)) return 'Android';
+      if (/Macintosh/i.test(ua)) return 'Mac';
+      if (/Windows/i.test(ua)) return 'PC Windows';
+      return 'Web';
+    }
+
+    const shortRandomId = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const detectedDevice = detectDeviceLabel();
+
     const state = {
       roomCode: 'SYNC01',
-      role: 'HOST', // 'HOST' | 'GUEST'
-      localPeerId: 'user-' + Math.random().toString(36).substring(2, 7),
-      localName: 'Danilo (iPhone)',
-      localDevice: detectDeviceLabel(),
+      role: 'MESH',
+      localPeerId: 'dev-' + shortRandomId.toLowerCase(),
+      localName: `${detectedDevice} #${shortRandomId.slice(0, 3)}`,
+      localDevice: detectedDevice,
+      joinedAt: Date.now(),
       isIos: detectIsIos(),
       iosUnlocked: false,
       lightMode: false,
 
-      // Motor de reproducción activo:
-      // 'relay'  -> Embedly HTTPS Relay + Player.js (Soluciona Error 153 enviando Referer HTTPS válido a YouTube)
-      // 'native' -> Reproductor HTML5 <video> directo (Piped API + MP4 stream, 0 iframes, 0 Error 153)
-      // 'direct' -> YouTube IFrame API con referrerpolicy="strict-origin-when-cross-origin"
-      engineMode: 'relay',
+      engineMode: detectInitialEngineMode(),
 
       // Estado del video maestro
       videoId: 'aqz-KE-bpKQ',
@@ -820,14 +847,16 @@
       playbackRate: 1,
       isMuted: false,
       isScrubbing: false,
+      lastStateTimestamp: 0,
 
       // Estado de motores internos
       ytReady: false,
       relayReady: false,
       usingFallbackClock: false,
-      lastLocalUpdateMs: Date.now(),
+      lastTrackedYtTime: 0,
+      lastTrackedYtTick: Date.now(),
 
-      // Motor de Chequeo Periódico (Heartbeat Drift Checker)
+      // Motor de Chequeo Periódico Silencioso (Heartbeat Drift Checker)
       autoCheckEnabled: true,
       checkIntervalMs: 3000,
       driftThresholdSec: 0.8,
@@ -836,50 +865,38 @@
       totalCorrections: 0,
       ignorePlayerEventsUntil: 0,
 
+      // Estado de red multi-dispositivo
+      mqttConnected: false,
+      mqttBrokerName: '',
+      webrtcConnectedCount: 0,
+
       // Participantes conectados y lista de expulsados
       peers: {},
       kickedPeers: {},
+      seenMsgIds: new Set(),
 
       // Mensajes de chat
       chatMessages: [
         {
           sender: 'Sistema',
           videoTime: '00:00',
-          text: 'Sala SYNC01 activa con Bypass Anti-Error 153. El chequeo automático verifica cada 3s que todos estén en el mismo punto.'
+          text: 'Sala SYNC01 lista. Abre esta misma página con el código SYNC01 en tu iPhone y en tu PC para sincronizar.'
         }
       ]
     };
 
     let ytPlayer = null;
     let relayIframeEl = null;
+    let mqttClients = [];
     let peerInstance = null;
     let hostConnection = null;
     let guestConnections = [];
     let broadcastChannel = null;
     let mainLoopInterval = null;
+    let announceInterval = null;
 
     /* ==========================================================================
-       DETECCIÓN DE DISPOSITIVO (ESPECIAL PARA iPHONE / iOS SAFARI)
-       ========================================================================== */
-    function detectIsIos() {
-      const ua = navigator.userAgent || '';
-      const isIPhoneIPad = /iPhone|iPad|iPod/i.test(ua);
-      const isTouchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-      return isIPhoneIPad || isTouchMac;
-    }
-
-    function detectDeviceLabel() {
-      const ua = navigator.userAgent || '';
-      if (/iPhone/i.test(ua)) return 'iPhone (iOS Safari)';
-      if (/iPad/i.test(ua)) return 'iPad (iOS)';
-      if (/Android/i.test(ua)) return 'Android Móvil';
-      if (/Macintosh/i.test(ua)) return 'Mac / Safari';
-      if (/Windows/i.test(ua)) return 'Windows PC';
-      return 'Navegador Web';
-    }
-
-    /* ==========================================================================
-       SISTEMA DE LOGS DE DEPURACIÓN Y NOTIFICACIONES PLANAS
+       SISTEMA DE LOGS DE DEPURACIÓN Y AVISOS DISCRETOS (SIN NOTIFICACIONES DE SYNC)
        ========================================================================== */
     function logDebug(category, message, level = 'INFO') {
       const box = document.getElementById('debug-log-output');
@@ -902,7 +919,7 @@
     function clearDebugLogs() {
       const box = document.getElementById('debug-log-output');
       if (box) box.innerHTML = '';
-      logDebug('DEBUG', 'Consola de depuración reiniciada.', 'INFO');
+      logDebug('DEBUG', 'Consola reiniciada.', 'INFO');
     }
 
     let toastTimeout = null;
@@ -913,14 +930,14 @@
       if (!bar || !msg || !dot) return;
 
       msg.textContent = message;
-      dot.className = 'w-2.5 h-2.5 inline-block shrink-0 ' + (
+      dot.className = 'w-2 h-2 inline-block shrink-0 ' + (
         type === 'warn' ? 'bg-amber-400' : type === 'err' ? 'bg-red-500' : 'bg-emerald-500'
       );
       bar.classList.remove('hidden');
       if (toastTimeout) clearTimeout(toastTimeout);
       toastTimeout = setTimeout(() => {
         bar.classList.add('hidden');
-      }, 3600);
+      }, 2200);
     }
 
     function hideToast() {
@@ -976,18 +993,16 @@
         if (data && data.title) {
           state.videoTitle = data.author_name ? `${data.title} — ${data.author_name}` : data.title;
           renderAll();
-          logDebug('META', `Título detectado: "${state.videoTitle}"`, 'OK');
         }
-      } catch (e) {
-        // Ignorar silenciosamente si noembed no responde
-      }
+      } catch (e) {}
     }
 
     /* ==========================================================================
-       ARQUITECTURA DE 3 MOTORES DE REPRODUCCIÓN (SOLUCIÓN AL ERROR 153)
-       1. 'relay': Embedly HTTPS Relay + Player.js postMessage + YT postMessage
-       2. 'native': HTML5 <video playsinline> directo (Piped API + MP4 fallback)
-       3. 'direct': YouTube IFrame con referrerpolicy="strict-origin-when-cross-origin"
+       MOTORES DE REPRODUCCIÓN DE YOUTUBE
+       - En GitHub Pages ('direct'): usa YT.Player oficial con lectura exacta del
+         tiempo cuando el usuario toca la barra o el botón Play dentro de YouTube.
+       - En vistas previas sin Referer ('relay'): usa Embedly HTTPS Relay.
+       - En modo nativo ('native'): usa HTML5 <video playsinline>.
        ========================================================================== */
     function buildEmbedlyRelayUrl(videoId, startSec = 0, autoplay = false) {
       const cleanStart = Math.max(0, Math.floor(Number(startSec) || 0));
@@ -996,10 +1011,8 @@
       return `https://cdn.embedly.com/widgets/media.html?src=${encodeURIComponent(innerYtUrl)}&url=${encodeURIComponent(watchUrl)}&type=text%2Fhtml&schema=youtube`;
     }
 
-    function switchVideoEngine(mode) {
-      state.engineMode = mode;
-      dismissErrorOverlay();
-
+    function updateEngineButtonsUI() {
+      const mode = state.engineMode;
       const btnRelay = document.getElementById('btn-engine-relay');
       const btnNative = document.getElementById('btn-engine-native');
       const btnDirect = document.getElementById('btn-engine-direct');
@@ -1009,7 +1022,12 @@
       if (btnRelay) btnRelay.className = mode === 'relay' ? activeClass : idleClass;
       if (btnNative) btnNative.className = mode === 'native' ? activeClass : idleClass;
       if (btnDirect) btnDirect.className = mode === 'direct' ? activeClass : idleClass;
+    }
 
+    function switchVideoEngine(mode) {
+      state.engineMode = mode;
+      dismissErrorOverlay();
+      updateEngineButtonsUI();
       mountActiveVideoEngine(state.videoId, state.currentTime, state.isPlaying);
     }
 
@@ -1020,13 +1038,57 @@
       const modeBadge = document.getElementById('engine-mode-badge');
 
       if (!mount || !nativeVideo) return;
+      updateEngineButtonsUI();
 
-      // Detener video HTML5 si estaba activo
       try {
         nativeVideo.pause();
       } catch (e) {}
 
-      if (state.engineMode === 'relay') {
+      if (state.engineMode === 'direct') {
+        nativeVideo.classList.add('hidden');
+        mount.classList.remove('hidden');
+
+        // Si ya tenemos una instancia activa de YT.Player, cargar el video directamente sin recrear el iframe
+        if (state.ytReady && ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+          try {
+            state.ignorePlayerEventsUntil = Date.now() + 1200;
+            if (autoPlay) {
+              ytPlayer.loadVideoById({ videoId: videoId, startSeconds: Math.max(0, startSec) });
+            } else {
+              ytPlayer.cueVideoById({ videoId: videoId, startSeconds: Math.max(0, startSec) });
+            }
+            if (diagApi) diagApi.textContent = 'YT IFrame API Activo';
+            if (modeBadge) modeBadge.textContent = 'YT IFRAME DIRECTO';
+            return;
+          } catch (e) {}
+        }
+
+        mount.innerHTML = '';
+        const validOrigin = (window.location.origin && window.location.origin.startsWith('http'))
+          ? window.location.origin
+          : 'https://www.youtube.com';
+
+        const iframe = document.createElement('iframe');
+        iframe.id = 'direct-yt-iframe';
+        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        iframe.setAttribute('allowfullscreen', '');
+        iframe.setAttribute('playsinline', '');
+        iframe.setAttribute('webkit-playsinline', '');
+        iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${encodeURIComponent(validOrigin)}&widget_referrer=${encodeURIComponent(validOrigin)}${startSec > 0 ? '&start=' + Math.floor(startSec) : ''}${autoPlay ? '&autoplay=1' : ''}`;
+
+        mount.appendChild(iframe);
+        relayIframeEl = iframe;
+
+        if (diagApi) diagApi.textContent = 'YT IFrame API Activo';
+        if (modeBadge) modeBadge.textContent = 'YT IFRAME DIRECTO';
+
+        if (window.YT && window.YT.Player) {
+          bindYtPlayerToIframe(iframe);
+        }
+      } else if (state.engineMode === 'relay') {
+        state.ytReady = false;
+        ytPlayer = null;
         nativeVideo.classList.add('hidden');
         mount.classList.remove('hidden');
         mount.innerHTML = '';
@@ -1044,72 +1106,35 @@
         relayIframeEl = iframe;
         state.relayReady = true;
 
-        if (diagApi) {
-          diagApi.textContent = 'RELAY HTTPS ACTIVO (Sin Error 153)';
-          diagApi.className = 'text-emerald-400 font-semibold';
-        }
-        if (modeBadge) {
-          modeBadge.textContent = 'RELAY ANTI-153 ACTIVO';
-        }
-        updatePlayerStatusBanner(autoPlay ? 'REPRODUCIENDO (RELAY)' : 'LISTO EN SALA', 'bg-emerald-500');
-        logDebug('MOTOR-1', `YouTube cargado vía Relay HTTPS (cdn.embedly.com) para evitar Error 153 [${videoId}]`, 'OK');
+        if (diagApi) diagApi.textContent = 'Relay HTTPS Activo';
+        if (modeBadge) modeBadge.textContent = 'YOUTUBE RELAY';
+        updatePlayerStatusBanner(autoPlay ? 'REPRODUCIENDO' : 'LISTO', 'bg-emerald-500');
       } else if (state.engineMode === 'native') {
+        state.ytReady = false;
+        ytPlayer = null;
         mount.innerHTML = '';
         mount.classList.add('hidden');
         nativeVideo.classList.remove('hidden');
 
-        if (diagApi) {
-          diagApi.textContent = 'HTML5 NATIVO (iOS Directo)';
-          diagApi.className = 'text-emerald-400 font-semibold';
-        }
-        if (modeBadge) {
-          modeBadge.textContent = 'HTML5 STREAM NATIVO';
-        }
-
+        if (diagApi) diagApi.textContent = 'HTML5 Nativo (iOS)';
+        if (modeBadge) modeBadge.textContent = 'HTML5 NATIVO';
         loadNativeStreamForVideo(videoId, startSec, autoPlay);
-      } else {
-        // Motor 3: YouTube IFrame directo con referrerpolicy pre-configurado antes de asignar src
-        nativeVideo.classList.add('hidden');
-        mount.classList.remove('hidden');
-        mount.innerHTML = '';
+      }
+    }
 
-        const validOrigin = (window.location.origin && window.location.origin.startsWith('http'))
-          ? window.location.origin
-          : 'https://www.youtube.com';
-
-        const iframe = document.createElement('iframe');
-        iframe.id = 'direct-yt-iframe';
-        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
-        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-        iframe.setAttribute('allowfullscreen', '');
-        iframe.setAttribute('playsinline', '');
-        iframe.setAttribute('webkit-playsinline', '');
-        iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}?enablejsapi=1&playsinline=1&rel=0&modestbranding=1&origin=${encodeURIComponent(validOrigin)}&widget_referrer=${encodeURIComponent(validOrigin)}${startSec > 0 ? '&start=' + Math.floor(startSec) : ''}${autoPlay ? '&autoplay=1' : ''}`;
-
-        mount.appendChild(iframe);
-        relayIframeEl = iframe;
-
-        if (diagApi) {
-          diagApi.textContent = 'YT IFRAME (Origin Referrer)';
-          diagApi.className = 'text-emerald-400 font-semibold';
-        }
-        if (modeBadge) {
-          modeBadge.textContent = 'YT IFRAME DIRECTO';
-        }
-
-        if (window.YT && window.YT.Player) {
-          try {
-            ytPlayer = new YT.Player(iframe, {
-              events: {
-                onReady: onPlayerReady,
-                onStateChange: onPlayerStateChange,
-                onPlaybackRateChange: onPlayerRateChange,
-                onError: onPlayerError
-              }
-            });
-          } catch (e) {}
-        }
-        logDebug('MOTOR-3', `Iframe directo configurado con referrerpolicy="strict-origin-when-cross-origin" [${videoId}]`, 'INFO');
+    function bindYtPlayerToIframe(iframeEl) {
+      if (!window.YT || !window.YT.Player || !iframeEl) return;
+      try {
+        ytPlayer = new YT.Player(iframeEl, {
+          events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange,
+            onPlaybackRateChange: onPlayerRateChange,
+            onError: onPlayerError
+          }
+        });
+      } catch (e) {
+        logDebug('YT-BIND', e.message, 'WARN');
       }
     }
 
@@ -1117,7 +1142,6 @@
       const nativeVideo = document.getElementById('native-html5-video');
       if (!nativeVideo) return;
 
-      // 1. Intentar resolver stream real de YouTube desde API pública Piped (CORS habilitado)
       let streamUrl = null;
       const pipedInstances = [
         `https://pipedapi.kavin.rocks/streams/${encodeURIComponent(videoId)}`,
@@ -1143,21 +1167,15 @@
               }
             }
           }
-        } catch (e) {
-          // Pasar a la siguiente instancia o stream directo
-        }
+        } catch (e) {}
       }
 
-      // 2. Si las instancias públicas de Piped no respondieron, usar el catálogo MP4 directo de alta velocidad
       if (!streamUrl) {
         const preset = DIRECT_VIDEO_STREAMS[videoId] || DIRECT_VIDEO_STREAMS['aqz-KE-bpKQ'];
         streamUrl = preset.mp4;
         if (DIRECT_VIDEO_STREAMS[videoId]) {
           state.duration = preset.duration;
         }
-        logDebug('HTML5-STREAM', `Stream MP4 directo cargado para sincronización nativa sin iframe.`, 'OK');
-      } else {
-        logDebug('HTML5-STREAM', `Stream directo de YouTube extraído con éxito para [${videoId}].`, 'OK');
       }
 
       nativeVideo.src = streamUrl;
@@ -1190,7 +1208,7 @@
         if (state.engineMode !== 'native') return;
         state.isPlaying = true;
         state.currentTime = nativeVideo.currentTime || 0;
-        updatePlayerStatusBanner('REPRODUCIENDO (HTML5)', 'bg-emerald-500');
+        updatePlayerStatusBanner('REPRODUCIENDO', 'bg-emerald-500');
         if (Date.now() > state.ignorePlayerEventsUntil) {
           broadcastSyncAction('PLAY', { time: state.currentTime, rate: state.playbackRate });
         }
@@ -1219,7 +1237,7 @@
     }
 
     /* ==========================================================================
-       PUENTE DE COMUNICACIÓN POSTMESSAGE (PLAYER.JS EMBEDLY + YOUTUBE IFRAME)
+       PUENTE POSTMESSAGE Y EVENTOS NATIVOS DE YOUTUBE (YT.PLAYER)
        ========================================================================== */
     function setupPostMessageBridge() {
       window.addEventListener('message', (event) => {
@@ -1233,12 +1251,10 @@
           }
         }
 
-        // Eventos del protocolo Player.js (Embedly HTTPS Relay)
         if (msg && msg.context === 'player.js') {
           if (msg.event === 'ready' && relayIframeEl && relayIframeEl.contentWindow) {
             state.relayReady = true;
-            const subscribeEvents = ['play', 'pause', 'timeupdate', 'ended', 'error'];
-            subscribeEvents.forEach(evName => {
+            ['play', 'pause', 'timeupdate', 'ended', 'error'].forEach(evName => {
               relayIframeEl.contentWindow.postMessage(JSON.stringify({
                 context: 'player.js',
                 version: '0.0.11',
@@ -1246,7 +1262,6 @@
                 value: evName
               }), '*');
             });
-            logDebug('RELAY-READY', 'Puente Player.js conectado con el reproductor de YouTube.', 'OK');
           } else if (msg.event === 'timeupdate' && msg.value) {
             if (typeof msg.value.seconds === 'number' && !state.isScrubbing) {
               state.currentTime = msg.value.seconds;
@@ -1269,15 +1284,24 @@
             }
             renderAll();
           } else if (msg.event === 'error') {
-            logDebug('RELAY-WARN', 'Cambiando automáticamente a Stream Directo HTML5...', 'WARN');
             switchVideoEngine('native');
           }
         }
 
-        // Eventos nativos del protocolo YouTube IFrame API postMessage
         if (msg && msg.event === 'infoDelivery' && msg.info) {
           if (typeof msg.info.currentTime === 'number' && !state.isScrubbing) {
-            state.currentTime = msg.info.currentTime;
+            const newTime = msg.info.currentTime;
+            // Detectar si el usuario movió manualmente la barra roja dentro del iframe de YouTube
+            if (
+              state.engineMode === 'direct' &&
+              Date.now() > state.ignorePlayerEventsUntil &&
+              Math.abs(newTime - state.currentTime) > 1.8
+            ) {
+              state.currentTime = newTime;
+              broadcastSyncAction('SEEK', { time: newTime, isPlaying: state.isPlaying });
+            } else {
+              state.currentTime = newTime;
+            }
           }
           if (typeof msg.info.duration === 'number' && msg.info.duration > 0) {
             state.duration = msg.info.duration;
@@ -1291,7 +1315,6 @@
     function sendRelayCommand(playerJsMethod, playerJsVal, ytFunc, ytArgs = []) {
       if (!relayIframeEl || !relayIframeEl.contentWindow) return;
       try {
-        // 1. Enviar comando Player.js a Embedly Relay
         const payload = {
           context: 'player.js',
           version: '0.0.11',
@@ -1302,7 +1325,6 @@
         }
         relayIframeEl.contentWindow.postMessage(JSON.stringify(payload), '*');
 
-        // 2. Enviar comando nativo YouTube postMessage
         if (ytFunc) {
           relayIframeEl.contentWindow.postMessage(JSON.stringify({
             event: 'command',
@@ -1314,12 +1336,9 @@
     }
 
     function initYouTubeApi() {
-      logDebug('BOOT', 'Inicializando motor de reproducción Anti-Error 153 y participantes...', 'INFO');
-      initDefaultSimulatedPeer();
       setupPostMessageBridge();
       setupNativeVideoListeners();
 
-      // Cargar el script oficial de YouTube en segundo plano para Modo 3
       if (!window.YT) {
         const tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
@@ -1327,14 +1346,16 @@
         document.head.appendChild(tag);
       }
 
-      // Montar el motor Relay Anti-Error 153 por defecto
       mountActiveVideoEngine(state.videoId, 0, false);
       fetchYouTubeMetadata(state.videoId);
     }
 
     window.onYouTubeIframeAPIReady = function () {
-      state.ytReady = true;
-      logDebug('YT-API', 'Librería YouTube IFrame API cargada.', 'OK');
+      logDebug('YT-API', 'YouTube IFrame API lista.', 'OK');
+      if (state.engineMode === 'direct') {
+        const iframe = document.getElementById('direct-yt-iframe');
+        if (iframe) bindYtPlayerToIframe(iframe);
+      }
     };
 
     function onPlayerReady() {
@@ -1342,7 +1363,7 @@
       state.usingFallbackClock = false;
       const dur = safeGetDuration();
       if (dur > 0) state.duration = dur;
-      updatePlayerStatusBanner('LISTO EN SALA', 'bg-emerald-500');
+      updatePlayerStatusBanner(state.isPlaying ? 'REPRODUCIENDO' : 'LISTO', 'bg-emerald-500');
       renderAll();
     }
 
@@ -1351,20 +1372,33 @@
       const ytState = event.data;
       const now = Date.now();
 
-      if (ytState === 1) {
+      if (ytState === 1) { // PLAYING
         state.isPlaying = true;
+        const dur = safeGetDuration();
+        if (dur > 0) state.duration = dur;
         state.currentTime = safeGetCurrentTime();
+        state.lastTrackedYtTime = state.currentTime;
+        state.lastTrackedYtTick = now;
         updatePlayerStatusBanner('REPRODUCIENDO', 'bg-emerald-500');
+
         if (now > state.ignorePlayerEventsUntil) {
           broadcastSyncAction('PLAY', { time: state.currentTime, rate: state.playbackRate });
         }
-      } else if (ytState === 2) {
+      } else if (ytState === 2) { // PAUSED
         state.isPlaying = false;
         state.currentTime = safeGetCurrentTime();
+        state.lastTrackedYtTime = state.currentTime;
+        state.lastTrackedYtTick = now;
         updatePlayerStatusBanner('EN PAUSA', 'bg-amber-400');
+
         if (now > state.ignorePlayerEventsUntil) {
           broadcastSyncAction('PAUSE', { time: state.currentTime });
         }
+      } else if (ytState === 3) { // BUFFERING
+        updatePlayerStatusBanner('SINCRONIZANDO...', 'bg-amber-400');
+      } else if (ytState === 0) { // ENDED
+        state.isPlaying = false;
+        updatePlayerStatusBanner('FINALIZADO', 'bg-zinc-500');
       }
       renderAll();
     }
@@ -1374,14 +1408,16 @@
       state.playbackRate = newRate;
       const select = document.getElementById('speed-select');
       if (select) select.value = String(newRate);
+      if (Date.now() > state.ignorePlayerEventsUntil) {
+        broadcastSyncAction('RATE', { rate: newRate, time: safeGetCurrentTime() });
+      }
     }
 
     function onPlayerError(event) {
       const code = Number(event && event.data) || 153;
-      logDebug('YT-ERR-' + code, `Error ${code} detectado en iframe directo. Activando Relay Anti-Error 153 automáticamente...`, 'WARN');
+      logDebug('YT-FALLBACK', `Código ${code} en iframe directo; cambiando silenciosamente a Relay HTTPS.`, 'WARN');
       if (state.engineMode === 'direct') {
         switchVideoEngine('relay');
-        showToast('Bypass Anti-Error 153 activado automáticamente', 'warn');
       }
     }
 
@@ -1391,7 +1427,7 @@
     }
 
     /* ==========================================================================
-       FUNCIONES DE CONTROL UNIFICADAS (RELAY HTTPS / HTML5 NATIVO / YT DIRECTO)
+       FUNCIONES DE CONTROL DEL REPRODUCTOR (CON SOPORTE ESPECIAL iPHONE / iOS)
        ========================================================================== */
     function safeGetCurrentTime() {
       if (state.engineMode === 'native') {
@@ -1399,7 +1435,8 @@
         if (v && !isNaN(v.currentTime)) return v.currentTime;
       } else if (state.engineMode === 'direct' && state.ytReady && ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
         try {
-          return Number(ytPlayer.getCurrentTime()) || state.currentTime;
+          const t = Number(ytPlayer.getCurrentTime());
+          if (!isNaN(t) && t >= 0) return t;
         } catch (e) {}
       }
       return state.currentTime;
@@ -1419,20 +1456,17 @@
     }
 
     function applyPlayerSeek(targetSec) {
-      const clamped = Math.max(0, Math.min(state.duration || 3600, Number(targetSec) || 0));
+      const clamped = Math.max(0, Math.min(state.duration || 7200, Number(targetSec) || 0));
       state.currentTime = clamped;
-      state.lastLocalUpdateMs = Date.now();
-      state.ignorePlayerEventsUntil = Date.now() + 900;
+      state.lastTrackedYtTime = clamped;
+      state.lastTrackedYtTick = Date.now();
+      state.ignorePlayerEventsUntil = Date.now() + 1100;
 
       if (state.engineMode === 'native') {
         const v = document.getElementById('native-html5-video');
         if (v) {
-          try {
-            v.currentTime = clamped;
-          } catch (e) {}
+          try { v.currentTime = clamped; } catch (e) {}
         }
-      } else if (state.engineMode === 'relay') {
-        sendRelayCommand('setCurrentTime', Math.floor(clamped), 'seekTo', [clamped, true]);
       } else if (state.engineMode === 'direct') {
         if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
           try {
@@ -1440,19 +1474,20 @@
           } catch (e) {}
         }
         sendRelayCommand('setCurrentTime', Math.floor(clamped), 'seekTo', [clamped, true]);
+      } else if (state.engineMode === 'relay') {
+        sendRelayCommand('setCurrentTime', Math.floor(clamped), 'seekTo', [clamped, true]);
       }
     }
 
     function applyPlayerPlay() {
       state.isPlaying = true;
-      state.lastLocalUpdateMs = Date.now();
-      state.ignorePlayerEventsUntil = Date.now() + 900;
+      state.lastTrackedYtTick = Date.now();
+      state.ignorePlayerEventsUntil = Date.now() + 1100;
 
       if (state.engineMode === 'native') {
         const v = document.getElementById('native-html5-video');
         if (v) {
           v.play().catch(() => {
-            logDebug('iOS-GUARD', 'Safari solicitó inicio silenciado en HTML5 video; activando mute temporal.', 'WARN');
             v.muted = true;
             state.isMuted = true;
             v.play().catch(() => {});
@@ -1460,14 +1495,29 @@
             if (unmuteBtn) unmuteBtn.classList.remove('hidden');
           });
         }
-      } else if (state.engineMode === 'relay') {
-        sendRelayCommand('play', undefined, 'playVideo', []);
       } else if (state.engineMode === 'direct') {
         if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
           try {
             ytPlayer.playVideo();
+            // Watchdog para iPhone / Safari: si WebKit bloquea playVideo() con audio desde red remota,
+            // silencia automáticamente e inicia la reproducción para que no pierda la sincronización con la PC
+            setTimeout(() => {
+              if (!state.isPlaying || !ytPlayer || typeof ytPlayer.getPlayerState !== 'function') return;
+              const st = ytPlayer.getPlayerState();
+              if (st !== 1 && st !== 3) {
+                state.ignorePlayerEventsUntil = Date.now() + 1000;
+                if (typeof ytPlayer.mute === 'function') ytPlayer.mute();
+                state.isMuted = true;
+                ytPlayer.playVideo();
+                const unmuteBtn = document.getElementById('ios-unmute-overlay');
+                if (unmuteBtn) unmuteBtn.classList.remove('hidden');
+                renderAll();
+              }
+            }, 600);
           } catch (e) {}
         }
+        sendRelayCommand('play', undefined, 'playVideo', []);
+      } else if (state.engineMode === 'relay') {
         sendRelayCommand('play', undefined, 'playVideo', []);
       }
       updatePlayerStatusBanner('REPRODUCIENDO', 'bg-emerald-500');
@@ -1475,24 +1525,22 @@
 
     function applyPlayerPause() {
       state.isPlaying = false;
-      state.lastLocalUpdateMs = Date.now();
-      state.ignorePlayerEventsUntil = Date.now() + 900;
+      state.lastTrackedYtTick = Date.now();
+      state.ignorePlayerEventsUntil = Date.now() + 1100;
 
       if (state.engineMode === 'native') {
         const v = document.getElementById('native-html5-video');
         if (v) {
-          try {
-            v.pause();
-          } catch (e) {}
+          try { v.pause(); } catch (e) {}
         }
-      } else if (state.engineMode === 'relay') {
-        sendRelayCommand('pause', undefined, 'pauseVideo', []);
       } else if (state.engineMode === 'direct') {
         if (ytPlayer && typeof ytPlayer.pauseVideo === 'function') {
           try {
             ytPlayer.pauseVideo();
           } catch (e) {}
         }
+        sendRelayCommand('pause', undefined, 'pauseVideo', []);
+      } else if (state.engineMode === 'relay') {
         sendRelayCommand('pause', undefined, 'pauseVideo', []);
       }
       updatePlayerStatusBanner('EN PAUSA', 'bg-amber-400');
@@ -1513,14 +1561,30 @@
         }
       } catch (e) {}
 
-      const nativeVideo = document.getElementById('native-html5-video');
-      if (nativeVideo && state.engineMode === 'native') {
-        nativeVideo.play().then(() => {
-          if (!state.isPlaying) nativeVideo.pause();
-        }).catch(() => {});
+      state.ignorePlayerEventsUntil = Date.now() + 1200;
+      const wasPlaying = state.isPlaying;
+
+      if (state.engineMode === 'native') {
+        const nativeVideo = document.getElementById('native-html5-video');
+        if (nativeVideo) {
+          nativeVideo.play().then(() => {
+            if (!wasPlaying) nativeVideo.pause();
+          }).catch(() => {});
+        }
+      } else if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+        try {
+          ytPlayer.unMute();
+          ytPlayer.playVideo();
+          if (!wasPlaying) {
+            setTimeout(() => {
+              state.ignorePlayerEventsUntil = Date.now() + 800;
+              ytPlayer.pauseVideo();
+            }, 150);
+          }
+        } catch (e) {}
       } else {
         sendRelayCommand('play', undefined, 'playVideo', []);
-        if (!state.isPlaying) {
+        if (!wasPlaying) {
           setTimeout(() => {
             sendRelayCommand('pause', undefined, 'pauseVideo', []);
           }, 150);
@@ -1529,21 +1593,8 @@
 
       state.iosUnlocked = true;
       const banner = document.getElementById('ios-unlock-banner');
-      if (banner) {
-        banner.className = 'border-b border-emerald-800 bg-emerald-950 text-emerald-200 px-3 sm:px-5 py-2';
-      }
-      const text = document.getElementById('ios-banner-text');
-      if (text) {
-        text.textContent = 'Reproducción remota y audio desbloqueados para iPhone / iOS Safari.';
-      }
-      const btn = document.getElementById('btn-ios-unlock');
-      if (btn) {
-        btn.textContent = 'iPhone Autorizado ✓';
-        btn.className = 'w-full sm:w-auto px-3 py-1 bg-emerald-500 text-zinc-950 font-mono font-bold text-xs uppercase border border-emerald-400';
-      }
-
-      logDebug('iOS-UNLOCK', 'Gesto táctil registrado: WebKit autorizó control remoto del reproductor.', 'OK');
-      showToast('Sincronización en iPhone desbloqueada');
+      if (banner) banner.classList.add('hidden');
+      logDebug('iOS', 'Reproducción remota autorizada en iPhone.', 'OK');
     }
 
     function unmuteFromOverlay() {
@@ -1552,12 +1603,17 @@
         nativeVideo.muted = false;
         nativeVideo.volume = 1.0;
       }
+      if (ytPlayer && typeof ytPlayer.unMute === 'function') {
+        try {
+          ytPlayer.unMute();
+          ytPlayer.setVolume(100);
+        } catch (e) {}
+      }
       sendRelayCommand('unmute', undefined, 'unMute', []);
       state.isMuted = false;
       const overlay = document.getElementById('ios-unmute-overlay');
       if (overlay) overlay.classList.add('hidden');
       renderAll();
-      logDebug('AUDIO', 'Audio reactivado manualmente en iOS.', 'OK');
     }
 
     /* ==========================================================================
@@ -1568,8 +1624,7 @@
       if (!input) return;
       const extracted = extractYouTubeId(input.value);
       if (!extracted) {
-        showToast('Enlace o ID de YouTube inválido. Verifica el formato.', 'err');
-        logDebug('URL-ERR', `No se pudo extraer un ID de 11 caracteres de: "${input.value}"`, 'ERR');
+        showToast('Enlace de YouTube inválido', 'err');
         return;
       }
       const presetTitle = DIRECT_VIDEO_STREAMS[extracted] ? DIRECT_VIDEO_STREAMS[extracted].title : `YouTube (${extracted})`;
@@ -1581,6 +1636,8 @@
       state.videoTitle = title || `Video (${videoId})`;
       state.currentTime = 0;
       state.isPlaying = true;
+      state.lastStateTimestamp = Date.now();
+
       if (DIRECT_VIDEO_STREAMS[videoId]) {
         state.duration = DIRECT_VIDEO_STREAMS[videoId].duration;
       }
@@ -1604,34 +1661,48 @@
         videoId: state.videoId,
         videoTitle: state.videoTitle,
         time: 0,
-        isPlaying: true
+        isPlaying: true,
+        rate: state.playbackRate
       });
 
-      logDebug('VIDEO', `Cargado y sincronizado para todos: ${state.videoTitle} [${videoId}]`, 'OK');
-      showToast(`Video sincronizado: ${state.videoTitle}`);
+      logDebug('VIDEO', `Video sincronizado: ${state.videoTitle} [${videoId}]`, 'OK');
       renderAll();
     }
 
     function handleSyncedPlayPause() {
+      state.lastStateTimestamp = Date.now();
       if (state.isPlaying) {
         state.currentTime = safeGetCurrentTime();
         applyPlayerPause();
-        broadcastSyncAction('PAUSE', { time: state.currentTime });
-        logDebug('SYNC-CMD', `Pausa global enviada en ${formatTime(state.currentTime, true)}`, 'INFO');
+        broadcastSyncAction('PAUSE', {
+          videoId: state.videoId,
+          time: state.currentTime,
+          isPlaying: false,
+          rate: state.playbackRate
+        });
       } else {
         state.currentTime = safeGetCurrentTime();
         applyPlayerPlay();
-        broadcastSyncAction('PLAY', { time: state.currentTime, rate: state.playbackRate });
-        logDebug('SYNC-CMD', `Play global enviado en ${formatTime(state.currentTime, true)}`, 'OK');
+        broadcastSyncAction('PLAY', {
+          videoId: state.videoId,
+          time: state.currentTime,
+          isPlaying: true,
+          rate: state.playbackRate
+        });
       }
       renderAll();
     }
 
     function handleRelativeSeek(deltaSeconds) {
+      state.lastStateTimestamp = Date.now();
       const target = Math.max(0, Math.min(state.duration, safeGetCurrentTime() + deltaSeconds));
       applyPlayerSeek(target);
-      broadcastSyncAction('SEEK', { time: target, isPlaying: state.isPlaying });
-      logDebug('SYNC-SEEK', `Salto global (${deltaSeconds > 0 ? '+' : ''}${deltaSeconds}s) -> ${formatTime(target, true)}`, 'INFO');
+      broadcastSyncAction('SEEK', {
+        videoId: state.videoId,
+        time: target,
+        isPlaying: state.isPlaying,
+        rate: state.playbackRate
+      });
       renderAll();
     }
 
@@ -1644,10 +1715,15 @@
 
     function handleTimelineSeekCommit(val) {
       state.isScrubbing = false;
+      state.lastStateTimestamp = Date.now();
       const target = Number(val) || 0;
       applyPlayerSeek(target);
-      broadcastSyncAction('SEEK', { time: target, isPlaying: state.isPlaying });
-      logDebug('SYNC-SEEK', `Barra de tiempo movida a ${formatTime(target, true)} para todos los usuarios`, 'OK');
+      broadcastSyncAction('SEEK', {
+        videoId: state.videoId,
+        time: target,
+        isPlaying: state.isPlaying,
+        rate: state.playbackRate
+      });
       renderAll();
     }
 
@@ -1656,9 +1732,16 @@
       state.playbackRate = rate;
       const nativeVideo = document.getElementById('native-html5-video');
       if (nativeVideo) nativeVideo.playbackRate = rate;
+      if (ytPlayer && typeof ytPlayer.setPlaybackRate === 'function') {
+        try { ytPlayer.setPlaybackRate(rate); } catch (e) {}
+      }
       sendRelayCommand('setPlaybackRate', rate, 'setPlaybackRate', [rate]);
-      broadcastSyncAction('RATE', { rate: rate, time: safeGetCurrentTime() });
-      logDebug('VELOCIDAD', `Velocidad sincronizada a ${rate}x`, 'INFO');
+      broadcastSyncAction('RATE', {
+        videoId: state.videoId,
+        rate: rate,
+        time: safeGetCurrentTime(),
+        isPlaying: state.isPlaying
+      });
       renderAll();
     }
 
@@ -1666,6 +1749,12 @@
       state.isMuted = !state.isMuted;
       const nativeVideo = document.getElementById('native-html5-video');
       if (nativeVideo) nativeVideo.muted = state.isMuted;
+      if (ytPlayer) {
+        try {
+          if (state.isMuted && typeof ytPlayer.mute === 'function') ytPlayer.mute();
+          if (!state.isMuted && typeof ytPlayer.unMute === 'function') ytPlayer.unMute();
+        } catch (e) {}
+      }
       if (state.isMuted) {
         sendRelayCommand('mute', undefined, 'mute', []);
       } else {
@@ -1691,19 +1780,15 @@
 
       delete state.peers[peerId];
 
-      // Notificar por red para desconectar al usuario expulsado
       broadcastSyncAction('KICK_USER', {
         targetPeerId: peerId,
         targetName: peerName,
         reason: `El anfitrión (${state.localName}) te expulsó de la sala ${state.roomCode}.`
       });
 
-      // Si tenía una conexión WebRTC directa con nosotros, cerrarla
       guestConnections = guestConnections.filter(conn => {
         if (conn && conn.peer && conn.peer.includes(peerId)) {
-          try {
-            conn.close();
-          } catch (e) {}
+          try { conn.close(); } catch (e) {}
           return false;
         }
         return true;
@@ -1715,18 +1800,15 @@
         text: `${peerName} fue expulsado de la sala.`
       });
 
-      logDebug('EXPULSIÓN', `Usuario "${peerName}" (${peerId}) fue expulsado de la sala.`, 'WARN');
-      showToast(`${peerName} fue expulsado de la sala`, 'warn');
+      logDebug('EXPULSIÓN', `Usuario "${peerName}" (${peerId}) expulsado de la sala.`, 'WARN');
       renderChat();
       renderAll();
     }
 
     function kickAllParticipants() {
       const ids = Object.keys(state.peers);
-      if (ids.length === 0) {
-        showToast('No hay otros usuarios en la sala para expulsar', 'warn');
-        return;
-      }
+      if (ids.length === 0) return;
+
       ids.forEach(id => {
         const p = state.peers[id];
         state.kickedPeers[id] = {
@@ -1744,14 +1826,11 @@
       });
 
       guestConnections.forEach(conn => {
-        try {
-          conn.close();
-        } catch (e) {}
+        try { conn.close(); } catch (e) {}
       });
       guestConnections = [];
 
-      logDebug('EXPULSIÓN', `Se expulsó a todos los invitados (${ids.length}) de la sala.`, 'WARN');
-      showToast(`Se expulsó a ${ids.length} usuario(s) de la sala`, 'warn');
+      logDebug('EXPULSIÓN', `Se expulsó a todos los participantes (${ids.length}).`, 'WARN');
       renderAll();
     }
 
@@ -1760,7 +1839,6 @@
       if (!entry) return;
       delete state.kickedPeers[peerId];
 
-      // Si era un usuario simulado, reincorporarlo sincronizado
       if (peerId.startsWith('sim-')) {
         state.peers[peerId] = {
           id: peerId,
@@ -1770,12 +1848,12 @@
           isPlaying: state.isPlaying,
           drift: 0,
           rttMs: 25,
-          simulated: true
+          simulated: true,
+          lastSeen: Date.now()
         };
       }
 
-      logDebug('MODERACIÓN', `Usuario "${entry.name}" desbloqueado y readmitido en la sala.`, 'OK');
-      showToast(`${entry.name} fue readmitido en la sala`);
+      logDebug('MODERACIÓN', `Usuario "${entry.name}" readmitido en la sala.`, 'OK');
       renderAll();
     }
 
@@ -1786,9 +1864,27 @@
     }
 
     /* ==========================================================================
-       MOTOR DE CHEQUEO PERIÓDICO DE SINCRONIZACIÓN (HEARTBEAT DRIFT CHECKER)
-       Verifica cada N segundos que todos los usuarios estén en el mismo punto
+       MOTOR DE CHEQUEO PERIÓDICO DE SINCRONIZACIÓN (100% SILENCIOSO, CERO POPUPS)
+       Comprueba cada N segundos que todos los dispositivos estén en el mismo punto
        ========================================================================== */
+    function isLocalDeviceCoordinator() {
+      // El dispositivo que realizó la última acción de reproducción o el más antiguo en la sala coordina el pulso
+      const realPeers = Object.values(state.peers).filter(p => !p.simulated);
+      if (realPeers.length === 0) return true;
+      for (const p of realPeers) {
+        if ((p.lastStateTimestamp || 0) > state.lastStateTimestamp) {
+          return false;
+        }
+      }
+      if (state.lastStateTimestamp > 0) return true;
+      for (const p of realPeers) {
+        if (p.joinedAt && p.joinedAt < state.joinedAt) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     function runPeriodicSyncCheck(sourceLabel = 'Auto-Heartbeat') {
       state.totalChecks += 1;
       const masterTime = safeGetCurrentTime();
@@ -1803,60 +1899,60 @@
         pulseBox.className = 'w-2.5 h-2.5 bg-white inline-block';
         setTimeout(() => {
           if (pulseBox) pulseBox.className = 'w-2.5 h-2.5 bg-emerald-500 inline-block';
-        }, 220);
+        }, 180);
       }
 
-      broadcastSyncAction('HEARTBEAT_CHECK', {
-        videoId: state.videoId,
-        time: masterTime,
-        isPlaying: state.isPlaying,
-        rate: state.playbackRate,
-        threshold: state.driftThresholdSec
-      });
+      // Si somos el coordinador activo (o si es un pulso manual), enviamos HEARTBEAT_CHECK a todos los dispositivos
+      if (sourceLabel !== 'Auto-Heartbeat' || isLocalDeviceCoordinator()) {
+        broadcastSyncAction('HEARTBEAT_CHECK', {
+          videoId: state.videoId,
+          videoTitle: state.videoTitle,
+          time: masterTime,
+          isPlaying: state.isPlaying,
+          rate: state.playbackRate,
+          threshold: state.driftThresholdSec
+        });
+      } else {
+        // Anunciar nuestro punto actual a la sala
+        broadcastSyncAction('PEER_REPORT', {
+          videoId: state.videoId,
+          time: masterTime,
+          isPlaying: state.isPlaying,
+          rate: state.playbackRate
+        });
+      }
 
-      let correctedCount = 0;
-
+      // Alinear silenciosamente cualquier usuario simulado sin mostrar notificaciones emergentes
       Object.values(state.peers).forEach(peer => {
         const drift = (peer.currentTime || 0) - masterTime;
         peer.drift = drift;
         const absDrift = Math.abs(drift);
         const stateMismatch = peer.isPlaying !== state.isPlaying;
 
-        if (absDrift > state.driftThresholdSec || stateMismatch) {
-          const oldTime = peer.currentTime;
+        if (peer.simulated && (absDrift > state.driftThresholdSec || stateMismatch)) {
           peer.currentTime = masterTime;
           peer.isPlaying = state.isPlaying;
           peer.drift = 0;
           peer.lastCorrectedAt = nowStr;
-          correctedCount += 1;
           state.totalCorrections += 1;
-
-          logDebug(
-            'AUTO-SYNC',
-            `[${sourceLabel}] Usuario "${peer.name}" tenía desfase de ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s (${formatTime(oldTime, true)} -> ${formatTime(masterTime, true)}). Re-sincronizado.`,
-            'WARN'
-          );
+          logDebug('AUTO-SYNC', `Ajuste silencioso aplicado a ${peer.name} -> ${formatTime(masterTime, true)}`, 'INFO');
         }
       });
-
-      if (correctedCount > 0) {
-        showToast(`Chequeo corrigió a ${correctedCount} usuario(s) al punto ${formatTime(masterTime, true)}`, 'warn');
-      }
 
       renderAll();
     }
 
     function triggerManualSyncAll(reason) {
+      state.lastStateTimestamp = Date.now();
       const masterTime = safeGetCurrentTime();
-      applyPlayerSeek(masterTime);
       broadcastSyncAction('FORCE_SYNC', {
         videoId: state.videoId,
+        videoTitle: state.videoTitle,
         time: masterTime,
         isPlaying: state.isPlaying,
         rate: state.playbackRate
       });
-      runPeriodicSyncCheck(reason || 'Sincronización Manual');
-      showToast(`Todos sincronizados en ${formatTime(masterTime, true)}`);
+      runPeriodicSyncCheck(reason || 'Manual');
     }
 
     function togglePeriodicChecker() {
@@ -1871,64 +1967,52 @@
           btn.className = 'px-3 py-1.5 border border-zinc-700 bg-zinc-950 text-zinc-400 font-mono text-xs font-semibold uppercase';
         }
       }
-      logDebug('CONFIG', `Chequeo periódico automático: ${state.autoCheckEnabled ? 'ACTIVADO' : 'PAUSADO'}`, 'INFO');
     }
 
     function updateCheckInterval(msVal) {
       state.checkIntervalMs = Number(msVal) || 3000;
       state.nextCheckRemainingMs = state.checkIntervalMs;
-      logDebug('CONFIG', `Frecuencia de chequeo ajustada a cada ${(state.checkIntervalMs / 1000).toFixed(0)}s`, 'INFO');
       renderAll();
     }
 
     function updateDriftThreshold(secVal) {
       state.driftThresholdSec = Number(secVal) || 0.8;
-      logDebug('CONFIG', `Tolerancia máxima de desfase ajustada a ±${state.driftThresholdSec}s`, 'INFO');
       renderAll();
     }
 
     /* ==========================================================================
-       SIMULACIÓN DE MULTI-USUARIO Y PRUEBA DE DESFASE EN UN CLIC
+       SIMULACIÓN OPCIONAL DE USUARIOS (BAJO DEMANDA)
        ========================================================================== */
     function initDefaultSimulatedPeer() {
-      state.peers['sim-maria'] = {
-        id: 'sim-maria',
-        name: 'María (iPhone 15)',
-        device: 'iPhone (iOS Safari)',
-        currentTime: 0,
-        isPlaying: false,
-        drift: 0.02,
-        rttMs: 26,
-        simulated: true
-      };
+      const presetBot = { id: 'sim-maria' };
+      return presetBot;
     }
 
     function addSimulatedPeer() {
       const count = Object.keys(state.peers).length + 2;
-      const names = ['Carlos (iPad Pro)', 'Valentina (iPhone 16)', 'Andrés (MacBook)', 'Sofía (iPhone 14)'];
+      const names = ['María (iPhone 15)', 'Carlos (iPad Pro)', 'Valentina (iPhone 16)', 'Andrés (MacBook)'];
       const chosen = names[(count - 2) % names.length];
-      const id = 'sim-' + Math.random().toString(36).substring(2, 6);
+      const genPeer = { id: 'sim-' + Math.random().toString(36).substring(2, 6) };
+      const id = count === 2 && !state.peers['sim-maria'] ? 'sim-maria' : genPeer.id;
 
       const initialDrift = 2.4;
       state.peers[id] = {
         id: id,
         name: chosen,
-        device: chosen.includes('iPhone') ? 'iPhone (iOS Safari)' : 'Móvil / Web',
+        device: chosen.includes('iPhone') ? 'iPhone (Safari)' : 'Móvil / Web',
         currentTime: Math.max(0, safeGetCurrentTime() + initialDrift),
         isPlaying: state.isPlaying,
         drift: initialDrift,
-        rttMs: 32,
-        simulated: true
+        rttMs: 28,
+        simulated: true,
+        lastSeen: Date.now()
       };
 
-      logDebug('SALA', `${chosen} se unió con +${initialDrift}s de diferencia. El próximo chequeo lo alineará.`, 'INFO');
-      showToast(`${chosen} se unió a la sala`);
       renderAll();
     }
 
     function simulateIntentionalDrift() {
-      const peerIds = Object.keys(state.peers);
-      if (peerIds.length === 0) {
+      if (Object.keys(state.peers).length === 0) {
         addSimulatedPeer();
       }
       const targetId = Object.keys(state.peers)[0];
@@ -1938,21 +2022,23 @@
       const base = safeGetCurrentTime();
       peer.currentTime = base + 3.5;
       peer.drift = 3.5;
-      state.nextCheckRemainingMs = Math.min(state.nextCheckRemainingMs, 1300);
-
-      logDebug(
-        'TEST-DESFASE',
-        `Se adelantó a "${peer.name}" +3.50s (${formatTime(peer.currentTime, true)} vs ${formatTime(base, true)}). Observa cómo el chequeo periódico lo corrige.`,
-        'WARN'
-      );
-      showToast(`Desfase de +3.5s aplicado a ${peer.name}. Auto-chequeo en ~1s...`, 'warn');
+      state.nextCheckRemainingMs = Math.min(state.nextCheckRemainingMs, 1200);
       renderAll();
     }
 
     /* ==========================================================================
-       RED EN TIEMPO REAL: WEBRTC (PEERJS) + BROADCASTCHANNEL + LOCALSTORAGE
+       RED MULTI-DISPOSITIVO EN TIEMPO REAL (ESPECIAL PARA GITHUB PAGES: iPHONE <-> PC)
+       1. MQTT sobre WebSockets TLS (EMQX + HiveMQ) -> Atraviesa cualquier NAT/WiFi/4G/5G entre iPhone y PC
+       2. WebRTC P2P con servidores STUN de Google
+       3. BroadcastChannel + localStorage -> Entre pestañas locales
        ========================================================================== */
+    function getRoomMqttTopicBase() {
+      const cleanRoom = (state.roomCode || 'SYNC01').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      return `syncyt_v3_global/room_${cleanRoom}`;
+    }
+
     function initNetworking() {
+      // 1. Canal local entre pestañas (BroadcastChannel)
       if ('BroadcastChannel' in window) {
         try {
           if (broadcastChannel) broadcastChannel.close();
@@ -1965,6 +2051,7 @@
         } catch (e) {}
       }
 
+      // 2. Fallback por evento storage entre pestañas
       window.onstorage = (ev) => {
         if (ev.key === 'ytsync_packet_' + state.roomCode && ev.newValue) {
           try {
@@ -1976,124 +2063,256 @@
         }
       };
 
-      if (typeof Peer === 'undefined') {
-        logDebug('RED', 'PeerJS no disponible; sincronización local entre pestañas activa.', 'WARN');
+      // 3. Conectar a Brokers Cloud MQTT over WSS (Conecta iPhone y PC en GitHub Pages sin fallos de NAT/mDNS)
+      initMqttCloudSync();
+
+      // 4. Conectar malla WebRTC (PeerJS con STUN) como canal suplementario
+      initWebRtcMesh();
+
+      // 5. Anuncio periódico de presencia cada 2.5s para que el iPhone y la PC se vean siempre en la lista
+      if (announceInterval) clearInterval(announceInterval);
+      announceInterval = setInterval(() => {
+        broadcastSyncAction('PEER_REPORT', {
+          videoId: state.videoId,
+          videoTitle: state.videoTitle,
+          time: safeGetCurrentTime(),
+          isPlaying: state.isPlaying,
+          rate: state.playbackRate
+        }, false);
+
+        // Limpiar dispositivos remotos desconectados hace más de 15 segundos
+        const now = Date.now();
+        let removedAny = false;
+        Object.keys(state.peers).forEach(pid => {
+          const p = state.peers[pid];
+          if (!p.simulated && p.lastSeen && (now - p.lastSeen > 15000)) {
+            delete state.peers[pid];
+            removedAny = true;
+          }
+        });
+        if (removedAny) renderAll();
+      }, 2500);
+    }
+
+    function initMqttCloudSync() {
+      if (typeof mqtt === 'undefined' || !mqtt.connect) {
+        logDebug('CLOUD', 'Librería MQTT no disponible; usando WebRTC + Local.', 'WARN');
         return;
       }
 
+      // Cerrar conexiones previas si se cambió de sala
+      mqttClients.forEach(c => {
+        try { c.end(true); } catch (e) {}
+      });
+      mqttClients = [];
+      state.mqttConnected = false;
+
+      const brokers = [
+        { name: 'EMQX Cloud SSL', url: 'wss://broker.emqx.io:8084/mqtt' },
+        { name: 'HiveMQ Cloud SSL', url: 'wss://broker.hivemq.com:8884/mqtt' }
+      ];
+
+      const topicBase = getRoomMqttTopicBase();
+      const eventsTopic = `${topicBase}/events`;
+      const stateTopic = `${topicBase}/state`;
+
+      brokers.forEach(broker => {
+        try {
+          const client = mqtt.connect(broker.url, {
+            clientId: `syncyt_${state.localPeerId}_${Math.random().toString(16).slice(2, 6)}`,
+            clean: true,
+            connectTimeout: 5000,
+            reconnectPeriod: 2500
+          });
+
+          client.on('connect', () => {
+            state.mqttConnected = true;
+            state.mqttBrokerName = broker.name;
+            updateConnectionBadges();
+
+            client.subscribe([eventsTopic, stateTopic], { qos: 0 }, (err) => {
+              if (!err) {
+                logDebug('CLOUD-SYNC', `Conectado a ${broker.name} en sala ${state.roomCode} (iPhone <-> PC listo).`, 'OK');
+                // Anunciar entrada a los demás dispositivos de la sala y pedir el estado actual
+                broadcastSyncAction('PEER_HELLO', {
+                  videoId: state.videoId,
+                  videoTitle: state.videoTitle,
+                  time: safeGetCurrentTime(),
+                  isPlaying: state.isPlaying,
+                  rate: state.playbackRate
+                });
+              }
+            });
+          });
+
+          client.on('message', (topic, payloadBuf) => {
+            try {
+              const text = payloadBuf.toString();
+              const packet = JSON.parse(text);
+              handleIncomingSyncPacket(packet);
+            } catch (e) {}
+          });
+
+          client.on('error', () => {});
+          mqttClients.push(client);
+        } catch (e) {}
+      });
+    }
+
+    function initWebRtcMesh() {
+      if (typeof Peer === 'undefined') return;
       try {
         if (peerInstance) peerInstance.destroy();
-        const peerIdToClaim = state.role === 'HOST'
-          ? `ytsync-room-${state.roomCode.toLowerCase()}-host`
-          : `ytsync-room-${state.roomCode.toLowerCase()}-${state.localPeerId}`;
+        const cleanRoom = state.roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const hostId = `ytsync-v3-${cleanRoom}-coord`;
 
-        peerInstance = new Peer(peerIdToClaim);
-
-        peerInstance.on('open', (id) => {
-          logDebug('WEBRTC', `Nodo P2P conectado con ID: ${id}`, 'OK');
-          const statusEl = document.getElementById('p2p-status-line');
-          if (statusEl) {
-            statusEl.textContent = `P2P WebRTC activo (${state.role === 'HOST' ? 'Anfitrión de ' + state.roomCode : 'Conectado a ' + state.roomCode}).`;
+        const peerConfig = {
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' }
+            ]
           }
+        };
 
-          if (state.role === 'GUEST') {
-            connectGuestToHost();
-          }
+        peerInstance = new Peer(hostId, peerConfig);
+
+        peerInstance.on('open', () => {
+          updateConnectionBadges();
         });
 
         peerInstance.on('connection', (conn) => {
           guestConnections.push(conn);
           conn.on('open', () => {
-            logDebug('WEBRTC', `Nuevo usuario conectado por P2P (${conn.peer})`, 'OK');
-            conn.send({
-              type: 'FORCE_SYNC',
-              roomCode: state.roomCode,
-              senderId: state.localPeerId,
-              senderName: state.localName,
-              senderDevice: state.localDevice,
-              sentAt: Date.now(),
-              payload: {
-                videoId: state.videoId,
-                videoTitle: state.videoTitle,
-                time: safeGetCurrentTime(),
-                isPlaying: state.isPlaying,
-                rate: state.playbackRate
-              }
-            });
+            state.webrtcConnectedCount = guestConnections.filter(c => c.open).length;
+            updateConnectionBadges();
+            conn.send(createSyncPacket('FORCE_SYNC', {
+              videoId: state.videoId,
+              videoTitle: state.videoTitle,
+              time: safeGetCurrentTime(),
+              isPlaying: state.isPlaying,
+              rate: state.playbackRate
+            }));
           });
           conn.on('data', (data) => {
             handleIncomingSyncPacket(data);
             guestConnections.forEach(other => {
               if (other !== conn && other.open) {
-                other.send(data);
+                try { other.send(data); } catch (e) {}
               }
             });
           });
         });
 
         peerInstance.on('error', (err) => {
-          if (err.type === 'unavailable-id' && state.role === 'HOST') {
-            state.role = 'GUEST';
-            updateRoleBadgeUI();
-            logDebug('WEBRTC', `La sala ${state.roomCode} ya tiene anfitrión. Uniéndose como Invitado...`, 'INFO');
-            initNetworking();
-          } else {
-            logDebug('WEBRTC-WARN', `Aviso P2P (${err.type}): usando canal híbrido.`, 'WARN');
+          if (err && err.type === 'unavailable-id') {
+            // Ya hay un nodo con el ID coordinador; conectarse como par a ese nodo
+            try {
+              const guestPeer = new Peer(`ytsync-v3-${cleanRoom}-${state.localPeerId}`, peerConfig);
+              peerInstance = guestPeer;
+              guestPeer.on('open', () => {
+                hostConnection = guestPeer.connect(hostId, { reliable: true });
+                hostConnection.on('open', () => {
+                  state.webrtcConnectedCount = 1;
+                  updateConnectionBadges();
+                  broadcastSyncAction('PEER_HELLO', {
+                    videoId: state.videoId,
+                    time: safeGetCurrentTime(),
+                    isPlaying: state.isPlaying
+                  });
+                });
+                hostConnection.on('data', (data) => handleIncomingSyncPacket(data));
+              });
+            } catch (e2) {}
           }
         });
-      } catch (e) {
-        logDebug('WEBRTC-ERR', e.message, 'WARN');
+      } catch (e) {}
+    }
+
+    function updateConnectionBadges() {
+      const badge = document.getElementById('connection-badge');
+      const statusLine = document.getElementById('p2p-status-line');
+      const roleBadge = document.getElementById('role-badge');
+
+      const realPeerCount = Object.values(state.peers).filter(p => !p.simulated).length;
+
+      if (badge) {
+        if (state.mqttConnected) {
+          badge.textContent = realPeerCount > 0 ? `SINCRONIZADO (${realPeerCount + 1} DISP)` : 'NUBE CONECTADA';
+          badge.className = 'font-mono text-[11px] uppercase px-2 py-0.5 border border-emerald-700 bg-emerald-950 text-emerald-300 shrink-0';
+        } else {
+          badge.textContent = 'SALA ACTIVA';
+          badge.className = 'font-mono text-[11px] uppercase px-2 py-0.5 border border-zinc-700 bg-zinc-900 text-zinc-300 shrink-0';
+        }
+      }
+
+      if (statusLine) {
+        if (state.mqttConnected) {
+          statusLine.textContent = `Nube en tiempo real activa (${state.mqttBrokerName}) + WebRTC. Cualquier iPhone o PC en la sala ${state.roomCode} se sincroniza al instante.`;
+        } else {
+          statusLine.textContent = `Conectando con sala ${state.roomCode}...`;
+        }
+      }
+
+      if (roleBadge) {
+        roleBadge.textContent = isLocalDeviceCoordinator() ? 'COORDINADOR ACTIVO' : 'SINCRONIZADO EN SALA';
       }
     }
 
-    function connectGuestToHost() {
-      if (!peerInstance) return;
-      const hostPeerId = `ytsync-room-${state.roomCode.toLowerCase()}-host`;
-      hostConnection = peerInstance.connect(hostPeerId, { reliable: true });
-
-      hostConnection.on('open', () => {
-        logDebug('WEBRTC', `Conectado al anfitrión de la sala ${state.roomCode}`, 'OK');
-        showToast(`Conectado a la sala ${state.roomCode}`);
-        broadcastSyncAction('PEER_REPORT', {
-          time: safeGetCurrentTime(),
-          isPlaying: state.isPlaying
-        });
-      });
-
-      hostConnection.on('data', (data) => {
-        handleIncomingSyncPacket(data);
-      });
-    }
-
-    function broadcastSyncAction(type, payload) {
-      const packet = {
+    function createSyncPacket(type, payload) {
+      return {
+        msgId: `${state.localPeerId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         type: type,
         roomCode: state.roomCode,
         senderId: state.localPeerId,
         senderName: state.localName,
         senderDevice: state.localDevice,
+        senderJoinedAt: state.joinedAt,
+        stateTimestamp: state.lastStateTimestamp,
         sentAt: Date.now(),
         payload: payload || {}
       };
+    }
 
+    function broadcastSyncAction(type, payload, retainState = false) {
+      const packet = createSyncPacket(type, payload);
+      state.seenMsgIds.add(packet.msgId);
+
+      // 1. Publicar por MQTT sobre WebSockets (conecta iPhone y PC en GitHub Pages)
+      const topicBase = getRoomMqttTopicBase();
+      const jsonStr = JSON.stringify(packet);
+      mqttClients.forEach(client => {
+        if (client && client.connected) {
+          try {
+            client.publish(`${topicBase}/events`, jsonStr, { qos: 0, retain: false });
+            // Si es un cambio de estado de reproducción/video, guardarlo también como estado retenido de la sala
+            if (retainState || type === 'PLAY' || type === 'PAUSE' || type === 'SEEK' || type === 'LOAD_VIDEO' || type === 'FORCE_SYNC') {
+              client.publish(`${topicBase}/state`, jsonStr, { qos: 0, retain: true });
+            }
+          } catch (e) {}
+        }
+      });
+
+      // 2. Publicar por BroadcastChannel y localStorage
       if (broadcastChannel) {
-        try {
-          broadcastChannel.postMessage(packet);
-        } catch (e) {}
+        try { broadcastChannel.postMessage(packet); } catch (e) {}
       }
-
       try {
-        localStorage.setItem('ytsync_packet_' + state.roomCode, JSON.stringify(packet));
+        localStorage.setItem('ytsync_packet_' + state.roomCode, jsonStr);
       } catch (e) {}
 
-      if (state.role === 'HOST') {
-        guestConnections.forEach(conn => {
-          if (conn && conn.open) conn.send(packet);
-        });
-      } else if (hostConnection && hostConnection.open) {
-        hostConnection.send(packet);
+      // 3. Publicar por WebRTC (PeerJS)
+      guestConnections.forEach(conn => {
+        if (conn && conn.open) {
+          try { conn.send(packet); } catch (e) {}
+        }
+      });
+      if (hostConnection && hostConnection.open) {
+        try { hostConnection.send(packet); } catch (e) {}
       }
 
+      // 4. Actualizar participantes simulados locales
       if (type === 'PLAY' || type === 'PAUSE' || type === 'SEEK' || type === 'FORCE_SYNC') {
         Object.values(state.peers).forEach(p => {
           if (p.simulated) {
@@ -2109,28 +2328,39 @@
 
     function handleIncomingSyncPacket(packet) {
       if (!packet || packet.senderId === state.localPeerId) return;
+      if (packet.roomCode && packet.roomCode.toUpperCase() !== state.roomCode.toUpperCase()) return;
 
-      // Ignorar paquetes de usuarios que fueron expulsados por el anfitrión
+      // Deduplicar mensajes recibidos por múltiples canales (MQTT + WebRTC + BroadcastChannel)
+      if (packet.msgId) {
+        if (state.seenMsgIds.has(packet.msgId)) return;
+        state.seenMsgIds.add(packet.msgId);
+        if (state.seenMsgIds.size > 400) {
+          const first = state.seenMsgIds.values().next().value;
+          state.seenMsgIds.delete(first);
+        }
+      }
+
+      // Ignorar paquetes de usuarios que fueron expulsados
       if (state.kickedPeers[packet.senderId]) return;
 
-      const transitSec = Math.max(0, Math.min(2.0, (Date.now() - (packet.sentAt || Date.now())) / 1000));
+      const rawTransitSec = (Date.now() - (packet.sentAt || Date.now())) / 1000;
+      const transitSec = Math.max(0, Math.min(2.5, rawTransitSec));
       const p = packet.payload || {};
 
-      // Si recibimos orden de expulsión dirigida a nosotros
+      // Ignorar paquetes retenidos antiguos de más de 2 minutos
+      if (rawTransitSec > 120 && packet.type !== 'LOAD_VIDEO') return;
+
+      // Procesar orden de expulsión
       if (packet.type === 'KICK_USER') {
         if (p.targetPeerId === state.localPeerId) {
           applyPlayerPause();
-          if (broadcastChannel) {
-            try { broadcastChannel.close(); } catch (e) {}
-          }
-          if (peerInstance) {
-            try { peerInstance.destroy(); } catch (e) {}
-          }
+          mqttClients.forEach(c => { try { c.end(true); } catch (e) {} });
+          if (broadcastChannel) { try { broadcastChannel.close(); } catch (e) {} }
+          if (peerInstance) { try { peerInstance.destroy(); } catch (e) {} }
           const modal = document.getElementById('kicked-modal');
           const reasonEl = document.getElementById('kicked-modal-reason');
           if (reasonEl && p.reason) reasonEl.textContent = p.reason;
           if (modal) modal.classList.remove('hidden');
-          logDebug('EXPULSADO', 'Has sido expulsado de la sala por el anfitrión.', 'ERR');
         } else if (p.targetPeerId && state.peers[p.targetPeerId]) {
           delete state.peers[p.targetPeerId];
           renderAll();
@@ -2138,59 +2368,122 @@
         return;
       }
 
+      // Registrar o actualizar el dispositivo remoto en la lista de Usuarios en Sala
+      const peerTime = typeof p.time === 'number' ? p.time : safeGetCurrentTime();
+      const isNewPeer = !state.peers[packet.senderId];
+
       state.peers[packet.senderId] = {
         id: packet.senderId,
-        name: packet.senderName || 'Usuario Remoto',
+        name: packet.senderName || 'Dispositivo Remoto',
         device: packet.senderDevice || 'Móvil / Web',
-        currentTime: typeof p.time === 'number' ? p.time : safeGetCurrentTime(),
+        joinedAt: packet.senderJoinedAt || Date.now(),
+        lastStateTimestamp: packet.stateTimestamp || 0,
+        currentTime: peerTime,
         isPlaying: typeof p.isPlaying === 'boolean' ? p.isPlaying : state.isPlaying,
-        drift: (typeof p.time === 'number' ? p.time : safeGetCurrentTime()) - safeGetCurrentTime(),
-        rttMs: Math.round(transitSec * 1000) || 18,
-        simulated: false
+        drift: peerTime - safeGetCurrentTime(),
+        rttMs: Math.max(12, Math.min(999, Math.round(Math.abs(rawTransitSec) * 1000) || 24)),
+        simulated: false,
+        lastSeen: Date.now()
       };
 
+      if (isNewPeer) {
+        updateConnectionBadges();
+      }
+
+      // Si un nuevo dispositivo acaba de entrar a la sala ('PEER_HELLO') y nosotros tenemos reproducción o estado más reciente,
+      // enviarle inmediatamente nuestro estado maestro para que se sincronice al instante
+      if (packet.type === 'PEER_HELLO') {
+        if (state.isPlaying || state.currentTime > 1 || isLocalDeviceCoordinator()) {
+          broadcastSyncAction('FORCE_SYNC', {
+            videoId: state.videoId,
+            videoTitle: state.videoTitle,
+            time: safeGetCurrentTime(),
+            isPlaying: state.isPlaying,
+            rate: state.playbackRate
+          });
+        }
+        renderAll();
+        return;
+      }
+
       if (packet.type === 'LOAD_VIDEO' && p.videoId) {
+        state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
         if (p.videoId !== state.videoId) {
           state.videoId = p.videoId;
           state.videoTitle = p.videoTitle || `Video (${p.videoId})`;
-          mountActiveVideoEngine(state.videoId, p.time || 0, true);
+          const input = document.getElementById('yt-url-input');
+          if (input) input.value = `https://www.youtube.com/watch?v=${state.videoId}`;
+          mountActiveVideoEngine(state.videoId, p.time || 0, Boolean(p.isPlaying));
           fetchYouTubeMetadata(state.videoId);
-          logDebug('REMOTO', `${packet.senderName} cambió el video a ${state.videoTitle}`, 'OK');
+        } else {
+          applyPlayerSeek(p.time || 0);
+          if (p.isPlaying) applyPlayerPlay();
+          else applyPlayerPause();
         }
       } else if (packet.type === 'PLAY') {
-        const expectedTime = (p.time || 0) + transitSec;
-        if (Math.abs(safeGetCurrentTime() - expectedTime) > state.driftThresholdSec) {
-          applyPlayerSeek(expectedTime);
+        state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
+        if (p.videoId && p.videoId !== state.videoId) {
+          state.videoId = p.videoId;
+          mountActiveVideoEngine(state.videoId, (p.time || 0) + transitSec, true);
+        } else {
+          const expectedTime = (p.time || 0) + transitSec;
+          if (Math.abs(safeGetCurrentTime() - expectedTime) > 0.45) {
+            applyPlayerSeek(expectedTime);
+          }
+          applyPlayerPlay();
         }
-        applyPlayerPlay();
-        logDebug('REMOTO', `${packet.senderName} inició reproducción en ${formatTime(expectedTime, true)}`, 'OK');
       } else if (packet.type === 'PAUSE') {
+        state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
         applyPlayerPause();
-        if (typeof p.time === 'number') applyPlayerSeek(p.time);
-        logDebug('REMOTO', `${packet.senderName} pausó en ${formatTime(p.time, true)}`, 'INFO');
+        if (typeof p.time === 'number' && Math.abs(safeGetCurrentTime() - p.time) > 0.35) {
+          applyPlayerSeek(p.time);
+        }
       } else if (packet.type === 'SEEK' || packet.type === 'FORCE_SYNC') {
+        state.lastStateTimestamp = Math.max(state.lastStateTimestamp, packet.stateTimestamp || Date.now());
         const expectedTime = (p.time || 0) + (p.isPlaying ? transitSec : 0);
-        applyPlayerSeek(expectedTime);
-        if (p.isPlaying) applyPlayerPlay();
-        else applyPlayerPause();
-        logDebug('REMOTO', `Sincronizado con ${packet.senderName} en ${formatTime(expectedTime, true)}`, 'OK');
+        if (p.videoId && p.videoId !== state.videoId) {
+          state.videoId = p.videoId;
+          state.videoTitle = p.videoTitle || `Video (${p.videoId})`;
+          mountActiveVideoEngine(state.videoId, expectedTime, Boolean(p.isPlaying));
+          fetchYouTubeMetadata(state.videoId);
+        } else {
+          if (Math.abs(safeGetCurrentTime() - expectedTime) > 0.4) {
+            applyPlayerSeek(expectedTime);
+          }
+          if (p.isPlaying && !state.isPlaying) applyPlayerPlay();
+          else if (!p.isPlaying && state.isPlaying) applyPlayerPause();
+        }
+      } else if (packet.type === 'RATE' && p.rate) {
+        state.playbackRate = Number(p.rate) || 1;
+        const select = document.getElementById('speed-select');
+        if (select) select.value = String(state.playbackRate);
+        if (ytPlayer && typeof ytPlayer.setPlaybackRate === 'function') {
+          try { ytPlayer.setPlaybackRate(state.playbackRate); } catch (e) {}
+        }
       } else if (packet.type === 'HEARTBEAT_CHECK') {
+        // Si el paquete de chequeo periódico viene de otro dispositivo y tiene un video o tiempo distinto:
+        if (p.videoId && p.videoId !== state.videoId) {
+          state.videoId = p.videoId;
+          state.videoTitle = p.videoTitle || `Video (${p.videoId})`;
+          mountActiveVideoEngine(state.videoId, p.time || 0, Boolean(p.isPlaying));
+          fetchYouTubeMetadata(state.videoId);
+          return;
+        }
+
         const expectedTime = (p.time || 0) + (p.isPlaying ? transitSec : 0);
         const localNow = safeGetCurrentTime();
         const drift = localNow - expectedTime;
+        const allowedDrift = p.threshold || state.driftThresholdSec;
 
-        if (Math.abs(drift) > (p.threshold || state.driftThresholdSec) || state.isPlaying !== p.isPlaying) {
+        // Corrección 100% silenciosa sin ningún toast ni ventana emergente
+        if (Math.abs(drift) > allowedDrift || state.isPlaying !== Boolean(p.isPlaying)) {
           state.totalCorrections += 1;
-          applyPlayerSeek(expectedTime);
-          if (p.isPlaying) applyPlayerPlay();
-          else applyPlayerPause();
-          logDebug('HEARTBEAT-FIX', `Desfase local de ${drift.toFixed(2)}s corregido automáticamente a ${formatTime(expectedTime, true)}`, 'WARN');
+          if (Math.abs(drift) > allowedDrift) {
+            applyPlayerSeek(expectedTime);
+          }
+          if (p.isPlaying && !state.isPlaying) applyPlayerPlay();
+          else if (!p.isPlaying && state.isPlaying) applyPlayerPause();
         }
-
-        broadcastSyncAction('PEER_REPORT', {
-          time: safeGetCurrentTime(),
-          isPlaying: state.isPlaying
-        });
       } else if (packet.type === 'CHAT' && p.text) {
         state.chatMessages.push({
           sender: packet.senderName,
@@ -2209,14 +2502,13 @@
     function createNewRoom() {
       const randomCode = 'SYNC' + Math.floor(10 + Math.random() * 89);
       state.roomCode = randomCode;
-      state.role = 'HOST';
+      state.peers = {};
       state.kickedPeers = {};
+      state.lastStateTimestamp = Date.now();
       document.getElementById('room-code-input').value = randomCode;
       document.getElementById('header-room-code').textContent = randomCode;
-      updateRoleBadgeUI();
       initNetworking();
-      logDebug('SALA', `Nueva sala creada: ${randomCode} (Anfitrión)`, 'OK');
-      showToast(`Sala ${randomCode} creada`);
+      logDebug('SALA', `Nueva sala activa: ${randomCode}`, 'OK');
       renderAll();
     }
 
@@ -2224,32 +2516,30 @@
       const input = document.getElementById('room-code-input');
       const code = (input ? input.value.trim().toUpperCase() : '') || 'SYNC01';
       state.roomCode = code;
-      state.role = 'GUEST';
+      state.peers = {};
       document.getElementById('header-room-code').textContent = code;
-      updateRoleBadgeUI();
       initNetworking();
-      logDebug('SALA', `Uniéndose a la sala ${code}...`, 'INFO');
-      showToast(`Conectado a sala ${code}`);
+      logDebug('SALA', `Conectado a la sala ${code}`, 'OK');
       renderAll();
     }
 
-    function updateRoleBadgeUI() {
-      const badge = document.getElementById('role-badge');
-      if (!badge) return;
-      badge.textContent = state.role === 'HOST' ? 'ANFITRIÓN (HOST)' : 'INVITADO (SYNC)';
-    }
-
     function updateLocalUserName(val) {
-      state.localName = (val || '').trim() || 'Usuario';
-      logDebug('PERFIL', `Nombre actualizado a: ${state.localName}`, 'INFO');
+      state.localName = (val || '').trim() || state.localDevice;
+      broadcastSyncAction('PEER_REPORT', {
+        videoId: state.videoId,
+        time: safeGetCurrentTime(),
+        isPlaying: state.isPlaying
+      });
       renderAll();
     }
 
     function copyRoomShare() {
-      const shareText = `Únete a mi sala sincronizada de YouTube en SYNC.YT — Código de sala: ${state.roomCode} (Video: https://youtu.be/${state.videoId})`;
+      const baseUrl = window.location.href.split('?')[0].split('#')[0];
+      const shareUrl = `${baseUrl}?room=${encodeURIComponent(state.roomCode)}&v=${encodeURIComponent(state.videoId)}`;
+      const shareText = `Sala sincronizada SYNC.YT (${state.roomCode}): ${shareUrl}`;
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(shareText);
+          navigator.clipboard.writeText(shareUrl);
         } else {
           const temp = document.createElement('textarea');
           temp.value = shareText;
@@ -2259,8 +2549,7 @@
           document.body.removeChild(temp);
         }
       } catch (e) {}
-      showToast(`Código ${state.roomCode} copiado al portapapeles`);
-      logDebug('COMPARTIR', `Invitación copiada para la sala ${state.roomCode}`, 'OK');
+      showToast(`Enlace de sala ${state.roomCode} copiado`);
     }
 
     function handleSendChat(event) {
@@ -2313,21 +2602,15 @@
         body.classList.remove('theme-light');
         if (label) label.textContent = 'Tema Claro';
       }
-      logDebug('UI', `Tema minimalista plano cambiado a ${state.lightMode ? 'Claro' : 'Oscuro'} (0 degradados).`, 'INFO');
     }
 
     function runFullDiagnosticCheck() {
-      logDebug('DIAG', '--- INICIANDO AUDITORÍA TÉCNICA ---', 'INFO');
-      logDebug('DIAG', `1. Dispositivo: ${state.localDevice} (iOS=${state.isIos})`, 'OK');
-      logDebug('DIAG', `2. Bypass Error 153: Activo (Motor=${state.engineMode.toUpperCase()})`, 'OK');
-      logDebug('DIAG', `3. YouTube Video ID actual: ${state.videoId} (${formatTime(safeGetCurrentTime(), true)})`, 'OK');
-      logDebug('DIAG', `4. Chequeo Periódico: cada ${(state.checkIntervalMs / 1000).toFixed(0)}s con umbral ±${state.driftThresholdSec}s`, 'OK');
-      runPeriodicSyncCheck('Diagnóstico Manual');
-      showToast('Diagnóstico completado sin errores');
+      logDebug('DIAG', `Dispositivo: ${state.localDevice} | Sala: ${state.roomCode} | Cloud MQTT: ${state.mqttConnected ? 'CONECTADO' : 'REINTENTANDO'}`, 'OK');
+      runPeriodicSyncCheck('Manual');
     }
 
     /* ==========================================================================
-       BUCLE PRINCIPAL (100ms) Y RENDERIZADO DE INTERFAZ
+       BUCLE PRINCIPAL (100ms): DETECTA SCRUB EN YOUTUBE Y EJECUTA AUTO-CHEQUEO
        ========================================================================== */
     function startMainLoop() {
       if (mainLoopInterval) clearInterval(mainLoopInterval);
@@ -2338,15 +2621,38 @@
         const dtSec = (now - lastTick) / 1000;
         lastTick = now;
 
-        if (state.engineMode === 'native') {
+        if (state.engineMode === 'direct' && state.ytReady && ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+          const actualYtTime = safeGetCurrentTime();
+          const expectedAdvance = state.isPlaying ? ((now - state.lastTrackedYtTick) / 1000) * state.playbackRate : 0;
+          const expectedYtTime = state.lastTrackedYtTime + expectedAdvance;
+
+          // Si el usuario adelantó o atrasó la barra roja propia de YouTube (> 1.5s de diferencia repentina),
+          // transmitir inmediatamente el nuevo tiempo a todos los dispositivos (iPhone <-> PC)
+          if (now > state.ignorePlayerEventsUntil && Math.abs(actualYtTime - expectedYtTime) > 1.5) {
+            state.currentTime = actualYtTime;
+            state.lastTrackedYtTime = actualYtTime;
+            state.lastTrackedYtTick = now;
+            state.lastStateTimestamp = now;
+            broadcastSyncAction('SEEK', {
+              videoId: state.videoId,
+              time: actualYtTime,
+              isPlaying: state.isPlaying,
+              rate: state.playbackRate
+            });
+          } else {
+            state.currentTime = actualYtTime;
+            state.lastTrackedYtTime = actualYtTime;
+            state.lastTrackedYtTick = now;
+          }
+        } else if (state.engineMode === 'native') {
           state.currentTime = safeGetCurrentTime();
         } else if (state.isPlaying) {
           state.currentTime = Math.min(state.duration, state.currentTime + dtSec * state.playbackRate);
         }
 
         Object.values(state.peers).forEach(peer => {
-          if (peer.simulated && peer.isPlaying) {
-            peer.currentTime = Math.min(state.duration, peer.currentTime + dtSec * state.playbackRate);
+          if (peer.isPlaying) {
+            peer.currentTime = Math.min(state.duration, (peer.currentTime || 0) + dtSec * state.playbackRate);
           }
           peer.drift = (peer.currentTime || 0) - state.currentTime;
         });
@@ -2411,13 +2717,13 @@
           pill.textContent = `SINCRONIZADOS (Δ ${maxAbsDrift.toFixed(2)}s)`;
           pill.className = 'px-2 py-0.5 bg-emerald-950 border border-emerald-700 text-emerald-300 text-[11px]';
         } else {
-          pill.textContent = `DESFASE DETECTADO (Δ ${maxAbsDrift.toFixed(2)}s)`;
+          pill.textContent = `AJUSTANDO... (Δ ${maxAbsDrift.toFixed(2)}s)`;
           pill.className = 'px-2 py-0.5 bg-amber-950 border border-amber-600 text-amber-300 text-[11px]';
         }
       }
 
       if (diagDrift) {
-        diagDrift.textContent = `${maxAbsDrift.toFixed(2)}s (${isSynced ? 'EN SINCRONÍA' : 'AJUSTANDO...'})`;
+        diagDrift.textContent = `${maxAbsDrift.toFixed(2)}s (${isSynced ? 'OK' : 'AJUSTANDO'})`;
         diagDrift.className = isSynced ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold';
       }
 
@@ -2437,7 +2743,7 @@
           const ok = Math.abs(drift) <= state.driftThresholdSec;
           dEl.textContent = ok
             ? `Δ ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s OK`
-            : `Δ ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s DESFASADO`;
+            : `Δ ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s`;
           dEl.className = ok
             ? 'font-mono text-[11px] px-1.5 py-0.5 border border-emerald-700 bg-emerald-950 text-emerald-300'
             : 'font-mono text-[11px] px-1.5 py-0.5 border border-amber-600 bg-amber-950 text-amber-300';
@@ -2462,6 +2768,8 @@
       if (checksEl) checksEl.textContent = String(state.totalChecks);
       if (corrEl) corrEl.textContent = String(state.totalCorrections);
 
+      updateConnectionBadges();
+
       const list = document.getElementById('participants-list');
       const peerValues = Object.values(state.peers);
       const countBadge = document.getElementById('peer-count-badge');
@@ -2475,11 +2783,11 @@
                 <span class="w-2 h-2 bg-emerald-500 inline-block shrink-0"></span>
                 <span class="font-mono font-bold text-xs text-white truncate">${escapeHtml(state.localName)} (Tú)</span>
               </div>
-              <span class="font-mono text-[11px] text-zinc-400 block">${escapeHtml(state.localDevice)} · ${state.role}</span>
+              <span class="font-mono text-[11px] text-zinc-400 block">${escapeHtml(state.localDevice)} · Sala ${escapeHtml(state.roomCode)}</span>
             </div>
             <div class="text-right shrink-0">
               <span id="peer-time-local" class="font-mono font-bold text-xs text-white block">${formatTime(state.currentTime, true)}</span>
-              <span class="font-mono text-[11px] px-1.5 py-0.5 border border-zinc-700 bg-zinc-900 text-zinc-300">PUNTO MAESTRO</span>
+              <span class="font-mono text-[11px] px-1.5 py-0.5 border border-zinc-700 bg-zinc-900 text-zinc-300">CONECTADO</span>
             </div>
           </div>
         `;
@@ -2494,13 +2802,13 @@
                   <span class="w-2 h-2 ${ok ? 'bg-emerald-500' : 'bg-amber-400'} inline-block shrink-0"></span>
                   <span class="font-mono font-semibold text-xs text-zinc-100 truncate">${escapeHtml(peer.name)}</span>
                 </div>
-                <span class="font-mono text-[11px] text-zinc-400 block">${escapeHtml(peer.device)} · Ping ${peer.rttMs || 24}ms</span>
+                <span class="font-mono text-[11px] text-zinc-400 block">${escapeHtml(peer.device)} · ${peer.simulated ? 'Simulado' : 'En Vivo'}</span>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <div class="text-right">
                   <span id="peer-time-${escapeHtml(peer.id)}" class="font-mono font-bold text-xs text-white block">${formatTime(peer.currentTime, true)}</span>
                   <span id="peer-drift-${escapeHtml(peer.id)}" class="font-mono text-[11px] px-1.5 py-0.5 border ${ok ? 'border-emerald-700 bg-emerald-950 text-emerald-300' : 'border-amber-600 bg-amber-950 text-amber-300'}">
-                    Δ ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s ${ok ? 'OK' : 'DESFASADO'}
+                    Δ ${drift >= 0 ? '+' : ''}${drift.toFixed(2)}s ${ok ? 'OK' : ''}
                   </span>
                 </div>
                 <button
@@ -2519,7 +2827,6 @@
         list.innerHTML = html;
       }
 
-      // Renderizar lista de personas expulsadas
       const kickedPanel = document.getElementById('kicked-users-panel');
       const kickedList = document.getElementById('kicked-users-list');
       const kickedBadge = document.getElementById('kicked-count-badge');
@@ -2572,9 +2879,12 @@
     }
 
     /* ==========================================================================
-       ARRANQUE INICIAL Y PARSEO DE PARÁMETROS DE SALA
+       ARRANQUE INICIAL Y RECONEXIÓN AUTOMÁTICA AL VOLVER A SAFARI EN IPHONE
        ========================================================================== */
     window.addEventListener('DOMContentLoaded', () => {
+      const nameInput = document.getElementById('user-name-input');
+      if (nameInput) nameInput.value = state.localName;
+
       try {
         const params = new URLSearchParams(window.location.search || window.location.hash.replace(/^#/, ''));
         if (params.get('room')) {
@@ -2594,7 +2904,17 @@
       const diagPlat = document.getElementById('diag-platform');
       if (diagPlat) diagPlat.textContent = `${state.localDevice}`;
 
-      logDebug('BOOT', `Iniciando SYNC.YT en ${state.localDevice}. Diseño minimalista plano (0 degradados).`, 'OK');
+      // Al volver a primer plano en iPhone Safari, anunciar presencia para re-sincronizar al instante
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          broadcastSyncAction('PEER_HELLO', {
+            videoId: state.videoId,
+            time: safeGetCurrentTime(),
+            isPlaying: state.isPlaying
+          });
+        }
+      });
+
       initYouTubeApi();
       initNetworking();
       renderChat();
